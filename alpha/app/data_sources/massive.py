@@ -15,7 +15,6 @@ import pandas as pd
 
 from app.config import config
 
-
 BASE_URL = "https://api.massive.com"  # Adjust if Massive uses a different base URL
 
 

@@ -1,16 +1,17 @@
 """Date utilities for the Alpha application."""
+
 import pandas as pd
 from datetime import datetime, date
 
 
 def format_date_mmm_dd_yyyy(date_val) -> str:
     """Format date to MMM-DD-YYYY style (e.g., Jul-07-2026).
-    
+
     Parameters
     ----------
     date_val : str, date, datetime, or pd.Timestamp
         The date value to format.
-    
+
     Returns
     -------
     str
@@ -38,12 +39,12 @@ def format_date_mmm_dd_yyyy(date_val) -> str:
 
 def normalize_date_for_merge(date_val) -> str:
     """Normalize date to YYYY-MM-DD string format for database merging.
-    
+
     Parameters
     ----------
     date_val : str, date, datetime, or pd.Timestamp
         The date value to normalize.
-    
+
     Returns
     -------
     str

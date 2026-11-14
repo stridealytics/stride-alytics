@@ -1,8 +1,10 @@
 """
 Push DataFrames to Google Sheets using the Sheets REST API (requests library).
 """
+
 import json
 import os
+import urllib.parse
 
 import pandas as pd
 import requests
@@ -38,9 +40,6 @@ def _api(method: str, url: str, body: dict | None = None) -> dict:
     if not r.ok:
         raise RuntimeError(f"Google API error {r.status_code}: {r.text[:300]}")
     return r.json()
-
-
-import urllib.parse
 
 
 def _ensure_worksheet(sid: str, name: str) -> None:
@@ -92,7 +91,11 @@ def push_to_sheet(df: pd.DataFrame, sheet_name: str) -> None:
 
     # Clear existing data
     try:
-        _api("POST", f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}!A1:Z500:clear", {})
+        _api(
+            "POST",
+            f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}!A1:Z500:clear",
+            {},
+        )
     except Exception:
         pass
 

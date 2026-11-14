@@ -25,7 +25,6 @@ from app.data_sources.fmp_fundamentals import fetch_fmp_fundamentals
 from app.data_sources.massive import fetch_massive_data_for_tickers
 from app.data_sources.ticker_universe import load_tickers
 
-
 # ─────────────────────────────────────────────
 # Supabase client
 # ─────────────────────────────────────────────
@@ -36,8 +35,6 @@ supabase = get_supabase_client()
 # ─────────────────────────────────────────────
 # 1. Load Tickers Universe
 # ─────────────────────────────────────────────
-
-
 
 
 # ─────────────────────────────────────────────
@@ -58,9 +55,9 @@ def fetch_yfinance_data(tickers: list) -> pd.DataFrame:
                     "ticker": t,
                     "price": info.get("currentPrice"),
                     "hv_30d": info.get("historicalVolatility"),
-                    "next_earnings_date": str(info.get("earningsDate")[0])
-                    if info.get("earningsDate")
-                    else None,
+                    "next_earnings_date": (
+                        str(info.get("earningsDate")[0]) if info.get("earningsDate") else None
+                    ),
                     "sector": info.get("sector"),
                 }
             )

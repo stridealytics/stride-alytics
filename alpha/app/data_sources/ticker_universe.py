@@ -7,9 +7,8 @@ Supports multiple sources:
 - Most active tickers (FMP API)
 - Custom watchlist (local CSV / Supabase)
 """
-import io
+
 import os
-import time
 
 import pandas as pd
 import requests

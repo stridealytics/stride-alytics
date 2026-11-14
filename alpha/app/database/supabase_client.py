@@ -15,7 +15,6 @@ should import this function to interact with Supabase.
 from supabase import create_client, Client
 from app.config import config
 
-
 # ─────────────────────────────────────────────
 # Validate Environment Variables
 # ─────────────────────────────────────────────

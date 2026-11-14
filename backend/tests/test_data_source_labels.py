@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import zlib
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -123,10 +122,24 @@ def test_regime_source_label(
 def test_tickers_are_labelled_fallback_when_yahoo_fails(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _fail(self, *a, **k):
-        raise httpx.ConnectError("no network")
+    def _fail(symbols):
+        raise ConnectionError("no network")
 
-    monkeypatch.setattr(market.httpx.AsyncClient, "get", _fail)
+    monkeypatch.setattr(market, "_fetch_quotes_sync", _fail)
     body = client.get("/api/v1/market/tickers").json()
     assert body["source"] == "fallback"
     assert "SPY" in body["data"]
+
+
+def test_tickers_are_live_and_skip_symbols_without_a_price(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.v1.schemas.market import TickerData
+
+    live = {"SPY": TickerData(symbol="SPY", price="754.37", change="-5.33", changePercent="-0.7")}
+    monkeypatch.setattr(market, "_fetch_quotes_sync", lambda symbols: live)
+    body = client.get("/api/v1/market/tickers").json()
+    assert body["source"] == "live" and list(body["data"]) == ["SPY"]
+
+    monkeypatch.setattr(market, "_fetch_quotes_sync", lambda symbols: {})
+    assert client.get("/api/v1/market/tickers").json()["source"] == "fallback"

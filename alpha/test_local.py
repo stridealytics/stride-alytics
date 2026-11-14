@@ -2,6 +2,7 @@
 Local test script for the Alpha pipeline.
 Tests core functionality (loading, scoring, bands, filters) without external services.
 """
+
 import pandas as pd
 from app.utils.load_data import load_local_csv
 from app.screener.compute_option_score import compute_option_score
@@ -166,13 +167,30 @@ def run_local_test() -> None:
     print("\n" + "=" * 60)
     print("SCREENER RESULTS (all rows with scores):")
     print("=" * 60)
-    print(df_bands[["Ticker", "Price", "Option Score", "Band", "Strategy Tag", "Sector"]].to_string(index=False))
+    print(
+        df_bands[["Ticker", "Price", "Option Score", "Band", "Strategy Tag", "Sector"]].to_string(
+            index=False
+        )
+    )
 
     print("\n" + "=" * 60)
     print("DAILY CANDIDATES (after filters):")
     print("=" * 60)
     if not daily.empty:
-        print(daily[["Ticker", "Price", "Option Score", "Band", "Volatility Bias", "IV vs HV", "Sector", "Strategy Tag"]].to_string(index=False))
+        print(
+            daily[
+                [
+                    "Ticker",
+                    "Price",
+                    "Option Score",
+                    "Band",
+                    "Volatility Bias",
+                    "IV vs HV",
+                    "Sector",
+                    "Strategy Tag",
+                ]
+            ].to_string(index=False)
+        )
     else:
         print("No daily candidates match all criteria.")
 
@@ -180,7 +198,19 @@ def run_local_test() -> None:
     print("WEEKLY WATCHLIST:")
     print("=" * 60)
     if not weekly.empty:
-        print(weekly[["Ticker", "Date", "Sector", "Price", "Option Score", "IV Rank (1y)", "Strategy Tag"]].to_string(index=False))
+        print(
+            weekly[
+                [
+                    "Ticker",
+                    "Date",
+                    "Sector",
+                    "Price",
+                    "Option Score",
+                    "IV Rank (1y)",
+                    "Strategy Tag",
+                ]
+            ].to_string(index=False)
+        )
     else:
         print("No weekly watchlist candidates match criteria.")
 
