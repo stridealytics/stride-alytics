@@ -16,7 +16,6 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from app.config import config
-from app.database.supabase_client import get_supabase_client
 
 load_dotenv()
 
@@ -86,16 +85,7 @@ def get_custom_universe() -> list[str]:
     return sorted(list(tickers))
 
 
-# Persistent master list stored in Supabase (optional)
-def save_universe_to_supabase(tickers: list[str]) -> None:
-    """Persist ticker universe to Supabase for tracking."""
-    try:
-        supabase = get_supabase_client()
-        now = pd.Timestamp.now().isoformat()
-        rows = [{"ticker": t, "added_at": now, "source": "universe_scanner"} for t in tickers]
-        supabase.table("ticker_universe").upsert(rows, on_conflict=["ticker"]).execute()
-    except Exception as e:
-        print(f"⚠️ Failed to save universe to Supabase: {e}")
+# The persistent master list lives in app/database/universe.py (sync_universe).
 
 
 def load_tickers(

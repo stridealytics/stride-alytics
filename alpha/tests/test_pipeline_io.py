@@ -9,41 +9,7 @@ import pytest
 
 from app import main as alpha_main
 from app.database import insert_daily
-
-
-class FakeQuery:
-    def __init__(self, log: list, table: str, fail_on: str | None):
-        self._log, self._table, self._fail_on = log, table, fail_on
-        self._op: tuple | None = None
-
-    def delete(self):
-        self._op = ("delete", self._table, None)
-        return self
-
-    def like(self, column, pattern):
-        assert self._op and self._op[0] == "delete"
-        self._op = ("delete", self._table, (column, pattern))
-        return self
-
-    def insert(self, rows):
-        self._op = ("insert", self._table, rows)
-        return self
-
-    def execute(self):
-        assert self._op is not None
-        if self._fail_on == self._op[0]:
-            raise RuntimeError(f"simulated {self._op[0]} failure")
-        self._log.append(self._op)
-        return self
-
-
-class FakeClient:
-    def __init__(self, fail_on: str | None = None):
-        self.log: list[tuple] = []
-        self._fail_on = fail_on
-
-    def table(self, name: str) -> FakeQuery:
-        return FakeQuery(self.log, name, self._fail_on)
+from tests.fake_supabase import FakeSupabase
 
 
 def _scored_df() -> pd.DataFrame:
@@ -77,8 +43,8 @@ def _scored_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def fake_client(monkeypatch: pytest.MonkeyPatch) -> FakeClient:
-    client = FakeClient()
+def fake_client(monkeypatch: pytest.MonkeyPatch) -> FakeSupabase:
+    client = FakeSupabase()
     monkeypatch.setattr(insert_daily, "get_supabase_client", lambda: client)
     return client
 
@@ -105,48 +71,109 @@ def test_nan_and_nat_become_null_not_strings() -> None:
     assert out == {"a": None, "b": None, "c": "2026-01-02T00:00:00", "d": None, "e": 3}
 
 
-# --- replace_day ------------------------------------------------------------
+# --- sync_day: add and update only what changed ------------------------------
 
 
-def test_replace_day_deletes_all_tables_then_inserts_with_the_day(fake_client: FakeClient) -> None:
+def _weekly(df: pd.DataFrame) -> pd.DataFrame:
+    return df[df["Option Score"] >= 6].assign(Date=pd.Timestamp("2026-12-01"))
+
+
+def test_first_write_inserts_everything_and_deletes_nothing(fake_client: FakeSupabase) -> None:
     df = _scored_df()
-    weekly = df[df["Option Score"] >= 6].assign(Date=pd.Timestamp("2026-12-01"))
-    counts = insert_daily.replace_day(df, weekly, day="2026-12-01")
-
-    ops = [(op, table) for op, table, _ in fake_client.log]
-    deletes = [i for i, (op, _) in enumerate(ops) if op == "delete"]
-    inserts = [i for i, (op, _) in enumerate(ops) if op == "insert"]
-    assert len(deletes) == 4 and deletes and inserts
-    assert max(deletes) < min(inserts)  # all deletes happen before any insert
-
-    for op, _table, arg in fake_client.log:
-        if op == "delete":
-            assert arg == ("date", "2026-12-01%")  # also catches legacy timestamped rows
-    for op, _table, rows in fake_client.log:
-        if op == "insert":
-            assert {r["date"] for r in rows} == {"2026-12-01"}
-    assert counts["daily_metrics"] == 2 and counts["bands"] == 2
+    report = insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    assert report["daily_metrics"] == {"inserted": 2, "updated": 0, "unchanged": 0, "removed": 0}
+    assert fake_client.ops("delete") == []
+    for rows in fake_client.tables.values():
+        assert {r["date"] for r in rows} == {"2026-12-01"}
 
 
-def test_nothing_is_deleted_if_building_the_payload_fails(
-    fake_client: FakeClient, monkeypatch: pytest.MonkeyPatch
+def test_rerunning_with_the_same_data_writes_nothing(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    fake_client.log.clear()
+    report = insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    assert fake_client.log == []
+    assert report["daily_metrics"]["unchanged"] == 2
+
+
+def test_only_changed_rows_and_columns_are_updated(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    fake_client.log.clear()
+    changed = df.copy()
+    changed.loc[changed["Ticker"] == "MSFT", "Price"] = 340.0
+    report = insert_daily.sync_day(changed, _weekly(changed), day="2026-12-01")
+    assert report["daily_metrics"] == {"inserted": 0, "updated": 1, "unchanged": 1, "removed": 0}
+    assert fake_client.ops("insert") == [] and fake_client.ops("delete") == []
+    rows = {r["ticker"]: r for r in fake_client.tables["daily_metrics"]}
+    assert rows["MSFT"]["price"] == 340.0 and rows["AAPL"]["price"] == 190.5
+
+
+def test_a_new_ticker_is_added_and_a_missing_one_keeps_its_row(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    fake_client.log.clear()
+    only_msft = df[df["Ticker"] == "MSFT"]
+    extra = pd.concat([only_msft, only_msft.assign(Ticker="NVDA")], ignore_index=True)
+    report = insert_daily.sync_day(extra, _weekly(extra), day="2026-12-01")
+    assert report["daily_metrics"]["inserted"] == 1
+    tickers = {r["ticker"] for r in fake_client.tables["daily_metrics"]}
+    assert tickers == {"AAPL", "MSFT", "NVDA"}  # AAPL was not deleted
+
+
+def test_watchlist_drops_only_the_tickers_that_left_it(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")  # AAPL (8) and MSFT (6)
+    smaller = df.copy()
+    smaller.loc[smaller["Ticker"] == "MSFT", "Option Score"] = 2
+    report = insert_daily.sync_day(smaller, _weekly(smaller), day="2026-12-01")
+    assert report["weekly_watchlist"]["removed"] == 1
+    assert {r["ticker"] for r in fake_client.tables["weekly_watchlist"]} == {"AAPL"}
+    assert len(fake_client.tables["daily_metrics"]) == 2  # nothing else was removed
+
+
+def test_an_empty_watchlist_never_empties_the_stored_day(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    insert_daily.sync_day(df, _weekly(df).iloc[0:0], day="2026-12-01")
+    assert len(fake_client.tables["weekly_watchlist"]) == 2
+
+
+def test_other_days_are_never_touched(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-11-30")
+    insert_daily.sync_day(df.assign(Price=1.0), _weekly(df), day="2026-12-01")
+    old = [r for r in fake_client.tables["daily_metrics"] if r["date"] == "2026-11-30"]
+    assert len(old) == 2 and {r["price"] for r in old} == {190.5, 330.0}
+
+
+def test_legacy_timestamped_rows_are_updated_not_duplicated(fake_client: FakeSupabase) -> None:
+    df = _scored_df()
+    fake_client.tables["daily_metrics"] = [
+        {"date": "2026-12-01T10:00:00", "ticker": "AAPL", "price": 1.0},
+        {"date": "2026-12-01T10:00:00", "ticker": "MSFT", "price": 330.0},
+    ]
+    report = insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    assert report["daily_metrics"]["inserted"] == 0
+    assert len(fake_client.tables["daily_metrics"]) == 2
+
+
+def test_nothing_is_written_if_building_the_payload_fails(
+    fake_client: FakeSupabase, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def boom(*a, **k):
         raise ValueError("bad data")
 
     monkeypatch.setattr(insert_daily, "_rows", boom)
     with pytest.raises(ValueError):
-        insert_daily.replace_day(_scored_df(), _scored_df(), day="2026-12-01")
-    assert fake_client.log == []  # the existing day's data is untouched
+        insert_daily.sync_day(_scored_df(), _scored_df(), day="2026-12-01")
+    assert fake_client.log == []
 
 
 def test_supabase_errors_are_raised_not_swallowed(monkeypatch: pytest.MonkeyPatch) -> None:
-    for fail_on in ("delete", "insert"):
-        monkeypatch.setattr(
-            insert_daily, "get_supabase_client", lambda f=fail_on: FakeClient(fail_on=f)
-        )
-        with pytest.raises(RuntimeError, match="simulated"):
-            insert_daily.replace_day(_scored_df(), _scored_df(), day="2026-12-01")
+    monkeypatch.setattr(insert_daily, "get_supabase_client", lambda: FakeSupabase(fail_on="insert"))
+    with pytest.raises(RuntimeError, match="simulated"):
+        insert_daily.sync_day(_scored_df(), _scored_df(), day="2026-12-01")
 
 
 # --- data-source policy -----------------------------------------------------
@@ -173,7 +200,7 @@ def test_sample_data_is_opt_in_and_never_written(monkeypatch: pytest.MonkeyPatch
     def must_not_write(*a, **k):
         raise AssertionError("sample data must not be written to Supabase")
 
-    monkeypatch.setattr(alpha_main, "replace_day", must_not_write)
+    monkeypatch.setattr(alpha_main, "sync_day", must_not_write)
     alpha_main.run_system(allow_sample=True)  # completes without writing
 
 

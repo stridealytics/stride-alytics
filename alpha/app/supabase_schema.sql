@@ -128,3 +128,44 @@ create table if not exists audit_log (
 );
 
 create index if not exists idx_audit_log_timestamp on audit_log(timestamp);
+
+
+-- ─────────────────────────────────────────────
+-- 7. ticker_universe — one row per ticker, loaded once
+--    The daily run adds new tickers and marks dropped ones status='removed'.
+--    Rows are never deleted or overwritten.
+-- ─────────────────────────────────────────────
+create table if not exists ticker_universe (
+    ticker text primary key,
+    sector text,
+    source text,
+    status text not null default 'active' check (status in ('active', 'removed')),
+    added_at timestamptz not null default now(),
+    removed_at timestamptz
+);
+
+create index if not exists idx_ticker_universe_status on ticker_universe(status);
+
+
+-- ─────────────────────────────────────────────
+-- 8. alpha_state — protection flags
+--    After the first complete load, alpha sets initial_load_complete=true and
+--    refuses bulk deletes (see app/database/safety.py).
+-- ─────────────────────────────────────────────
+create table if not exists alpha_state (
+    key text primary key,
+    value text not null,
+    updated_at timestamptz not null default now()
+);
+
+
+-- ─────────────────────────────────────────────
+-- 9. Optional, once, after removing duplicate (date, ticker) rows:
+--    stops duplicates at the database level. The pipeline already avoids creating them.
+--
+--    -- find them first:
+--    --   select date, ticker, count(*) from daily_metrics group by 1, 2 having count(*) > 1;
+--    -- then, once clean:
+--    --   create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
+--    (same for option_scores, bands, weekly_watchlist)
+-- ─────────────────────────────────────────────

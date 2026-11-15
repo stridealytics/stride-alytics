@@ -63,7 +63,7 @@ Setup: `scripts/setup-dev.sh` or `scripts/setup-dev.ps1` installs dependencies a
 3. Assign bands A–E (`screener/band_pipeline.py`).
 4. Apply daily filters (`screener/apply_filters.py`).
 5. Build the weekly watchlist (`screener/weekly_watchlist.py`).
-6. Insert into Supabase (`database/insert_daily.py`). It clears today's rows first.
+6. Write to Supabase (`database/insert_daily.py:sync_day`). It never wipes: it inserts new tickers and updates only changed rows for the day. The ticker list is kept once in `ticker_universe` (`database/universe.py`; the daily sync adds new tickers and soft-removes dropped ones, with a guard against mass removal), and after the first complete load `database/safety.py` blocks bulk deletes (`clear_all_tables`, `delete_rows`) unless `ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND`.
 7. Push to Google Sheets (`sheets/push_to_sheets.py`).
 
 Failures in the insert and Sheets steps only log a warning.

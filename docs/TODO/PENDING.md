@@ -75,9 +75,11 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - Done when: the scheduled run produces today's rows without a manually updated CSV.
 
 ### 7. Clean up old duplicate rows in Supabase
-- Earlier runs on the CSV/demo path stored timestamped dates and accumulated duplicates; only today's rows are replaced now.
-- Options: run `alpha/reset_and_run.py` (clears everything) or delete rows older than today by hand.
-- Done when: each table has one snapshot per day.
+- Earlier runs on the CSV/demo path stored timestamped dates and accumulated duplicates. The pipeline no longer wipes or duplicates anything (it adds new tickers and updates changed rows for the day), so existing duplicates stay until you remove them.
+- **You:** run the tables `ticker_universe` and `alpha_state` from `alpha/app/supabase_schema.sql` in Supabase (new). Then find duplicates with the `group by date, ticker having count(*) > 1` query in section 9 of that file, delete the extra copies, and optionally add the unique index described there.
+- After the first complete run the data is protected: `reset_and_run.py` and `clear_all_tables()` refuse to run (`ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND` overrides on purpose). `clear_tables.sql` no longer truncates.
+- Not guarded: a manual `TRUNCATE` in the Supabase SQL editor. A database trigger could block that too; say if you want it.
+- Done when: each table has one row per ticker per day.
 
 ### 8. Protect the Streamlit dashboard
 - It uses the service-role key and has no login, so anyone with the URL can see the data.

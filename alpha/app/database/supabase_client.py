@@ -67,8 +67,11 @@ def insert_rows(table: str, rows: list[dict]):
 
 
 def delete_rows(table: str, column: str, value):
-    """Delete rows where column == value."""
+    """Delete rows where column == value. Blocked once the data is protected (see safety.py)."""
+    from app.database.safety import require_unlocked
+
     client = get_supabase_client()
+    require_unlocked(f"delete_rows({table})", client)
     return client.table(table).delete().eq(column, value).execute()
 
 

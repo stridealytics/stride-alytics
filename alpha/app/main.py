@@ -26,7 +26,7 @@ from app.screener.compute_option_score import compute_option_score
 from app.screener.apply_filters import apply_daily_filters
 from app.screener.weekly_watchlist import weekly_watchlist, compute_strategy_for_all
 from app.screener.band_pipeline import compute_bands
-from app.database.insert_daily import replace_day
+from app.database.insert_daily import sync_day
 from app.sheets.push_to_sheets import push_to_sheet
 
 # Warn when the CSV fallback is older than this many days (its values would be
@@ -125,6 +125,23 @@ def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
     )
 
 
+def _after_load(df: pd.DataFrame) -> None:
+    """Bookkeeping after a successful write: fill each ticker's sector once, then protect the
+    data. Failures here are warnings; the data itself is already written."""
+    try:
+        from app.database import safety, universe
+
+        if "Sector" in df.columns:
+            sectors = dict(zip(df["Ticker"].astype(str).str.upper(), df["Sector"]))
+            filled = universe.fill_sectors({t: s for t, s in sectors.items() if isinstance(s, str)})
+            if filled:
+                print(f"Stored the sector for {filled} new ticker(s).")
+        if universe.active_tickers() and safety.mark_loaded():
+            print("[INFO] Initial load complete: bulk deletes are now blocked.")
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARNING] Could not update the universe bookkeeping ({e}). Is the schema applied?")
+
+
 def run_system(allow_sample: bool | None = None) -> None:
     """Run the full daily option screening pipeline. Raises on failure."""
     if allow_sample is None:
@@ -167,10 +184,11 @@ def run_system(allow_sample: bool | None = None) -> None:
         print("Sample data: skipping Supabase and Google Sheets writes.")
         return
 
-    # 7. Replace today's rows in Supabase. Errors propagate (non-zero exit + alert).
+    # 7. Add and update only what is new or changed. Errors propagate (non-zero exit + alert).
     print("Writing data to Supabase...")
-    counts = replace_day(df_bands, weekly)
-    print(f"Supabase updated: {counts}")
+    report = sync_day(df_bands, weekly)
+    print(f"Supabase updated: {report}")
+    _after_load(df_bands)
 
     # 8. Push to Google Sheets (only if configured). Failures alert but don't fail the run.
     if not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):

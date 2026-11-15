@@ -147,3 +147,11 @@ uv run ruff check . && uv run black --check .
 - Open a short put on one stock, then run the gate check for a close peer (for example two big chip makers, or SPY and QQQ). It should block with BR-013 and name the held symbol; a stock from another sector should pass.
 - Turn the internet off for the history source (or use a made-up symbol): a candidate with an open position elsewhere must block with "Data unavailable" (fail-safe).
 - Add a short put with a credit, a risk amount, a strike and an expiry: the trade shows an `entry_ev`. Close it; Analytics, EV calibration shows the average expected value and how many trades carry one.
+
+### V21. Load once, then only changes (alpha, needs your Supabase and `INGEST_LIVE=1`)
+- Run the `ticker_universe` and `alpha_state` blocks of `alpha/app/supabase_schema.sql` in Supabase (use a throwaway project first).
+- First run (`INGEST_LIVE=1 uv run python app/main.py`): `ticker_universe` fills with one row per ticker, the day's four tables fill, and `alpha_state` gets `initial_load_complete = true`.
+- Run it again straight away: the log says `Universe sync: {'added': 0, ...}` and every table reports `inserted: 0`; only rows whose values moved show `updated`.
+- Remove one ticker from `alpha/universe/*.csv` (or add a new one) and run again: the new ticker gets one row; the dropped one stays in `ticker_universe` with `status = 'removed'`, and its old rows remain.
+- Run `uv run python reset_and_run.py`: it must refuse with "the data has been loaded and is protected" and delete nothing.
+- Check the next day: new `daily_metrics` rows for the new date, yesterday's rows untouched.

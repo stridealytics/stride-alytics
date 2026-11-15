@@ -36,7 +36,7 @@ alpha/
 │   │   └── weekly_watchlist.py     # Weekly watchlist with strategy tags
 │   ├── database/
 │   │   ├── supabase_client.py      # Supabase client singleton
-│   │   └── insert_daily.py         # replace_day + insert helpers
+│   │   └── insert_daily.py         # sync_day (add/update only) + insert helpers
 │   ├── sheets/push_to_sheets.py    # Push DataFrames to Google Sheets
 │   └── data_sources/               # polygon, yfinance_data, fmp_fundamentals, massive, ticker_universe
 ├── tests/                          # pytest (fake Supabase client, no network)
@@ -74,7 +74,9 @@ alpha/
 3. **Bands** — `compute_bands()` maps scores to letter bands: A (≥8), B (≥6), C (≥4), D (≥2), E (<2).
 4. **Daily Filters** — `apply_daily_filters()` keeps only tickers passing all entry criteria and adds Volatility Bias & IV vs HV columns.
 5. **Weekly Watchlist** — `weekly_watchlist()` filters for score ≥6 and assigns strategy tags based on IV rank and trend.
-6. **Supabase** — `replace_day()` replaces today's rows in `daily_metrics`, `option_scores`, `bands` and `weekly_watchlist`. Payloads are built before anything is deleted; deletes match `date LIKE 'YYYY-MM-DD%'`; errors are raised.
+6. **Supabase** — `sync_day()` writes today's rows to `daily_metrics`, `option_scores`, `bands` and `weekly_watchlist` without wiping anything: it reads the day's existing rows, inserts tickers that have none, and updates only the columns that changed. Re-running with the same data writes nothing; other days are never touched; a ticker missing from today's data keeps its row. Only `weekly_watchlist` rows for tickers that left today's list are removed, one by one (never the whole day). Payloads are built before any write; errors are raised.
+   - **Ticker list:** `ticker_universe` holds one row per ticker. The first run stores the whole list (the one-time bulk load); each later run writes only the difference: new tickers are inserted, dropped ones get `status = 'removed'` (never deleted), returning ones are reactivated. An empty list, or one that would remove more than `UNIVERSE_MAX_REMOVE_PCT` (default 20) percent of the active tickers, counts as a bad fetch and removes nothing. The sector is stored once per ticker.
+   - **Protection:** after the first complete load the run sets `initial_load_complete` in `alpha_state`. From then on `clear_all_tables()` and `delete_rows()` refuse to run (also if the flag cannot be read). Override on purpose with `ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND`. `reset_and_run.py` goes through the same guard.
 7. **Google Sheets** — only if `GOOGLE_SHEETS_SPREADSHEET_ID` is set: `push_to_sheet()` writes 3 worksheets: "Screener", "Daily Candidates", "Weekly Watchlist".
 
 ### Failure policy
