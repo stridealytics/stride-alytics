@@ -261,7 +261,6 @@ stridealytics/
 ├── backend/               # FastAPI backend services
 ├── database/              # Supabase migrations & schema
 ├── scheduler/             # GitHub Actions workflows
-├── shared/                # Shared types, constants, utils
 └── infra/                 # Deployment & infrastructure configs
 ```
 

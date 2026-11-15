@@ -17,7 +17,7 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 | **FR-140** Tunable regime inputs | **Built** | Weights tunable in Settings; applied to your live score (the shared history uses the defaults) |
 | **FR-200** Watchlist grid (price, IV, trend, risk) | Partial | Symbol, price, change %; IV/trend/risk metrics Planned |
 | **FR-210** Refresh | Partial | Auto-refresh every 60 s; manual refresh button not added |
-| **FR-220** CSV export | **Built** | Trades and watchlists |
+| **FR-220** CSV export | **Built** | Trades, watchlists and the audit trail |
 | **FR-230** Multi-watchlist grouping, quick search | Partial | Multiple lists built; quick symbol search Planned |
 | **FR-300–320** Option chain, strategy preview, risk preview | Chain **Built**; strategy preview and pre-entry risk preview Planned | Option Chain page: calls/puts per strike with Greeks and a probability-of-profit estimate; `source` shows when the chain is synthetic. The portfolio risk after a candidate trade is not previewed yet (the Sizing page and the gate cover entry) |
 | **FR-330, FR-840, FR-850** Block entries on DNT / show reasons | **Built** | `POST /trades` runs the gate and refuses a blocked entry with every reason; the UI shows them. Back-dated entries (more than 1 day old) are record-keeping and not gated |
@@ -51,7 +51,7 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 | **BR-061** Log blocked signals | **Built** |
 | **BR-062** Log trade add/close with time and context | **Built** |
 | **BR-063** Immutable log of regime and gate changes | Regime changes **Built**; changes to the rule thresholds themselves are constants in code, so they are tracked by git |
-| **BR-064** Audit export | Partial (trades CSV); audit CSV export Planned |
+| **BR-064** Audit export | **Built**: trades CSV and audit-trail CSV (`GET /logs/audit.csv`, button on the Signal Log page) |
 | **BR-070** Operational alerts | Partial (pipeline failures); API-latency alert Planned |
 | **BR-071** Free-tier quota alerts | Planned (`cost_monitor` script) |
 | **BR-080–082** Portfolio dashboard, block on risk limits | **Built**: Net Delta, Margin %, Sector Exposure, Total Risk and regime on the Heat Dashboard; total risk over the limit blocks entries (BR-081) |
@@ -73,7 +73,7 @@ PRO plan, pricing, billing, multi-user / RIA features, admin console, mobile app
 
 ## Planned, not scheduled
 
-Backtesting, broker API and streaming/WebSocket data, smart rolling engine, paid news feed (NewsFlag is manual), push notifications, API-latency and quota alerts, audit CSV export.
+Backtesting, broker API and streaming/WebSocket data, smart rolling engine, paid news feed (NewsFlag is manual), push notifications, API-latency and quota alerts.
 
 ## Phase 2 assumptions (defaults you can change)
 

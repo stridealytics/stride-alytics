@@ -251,3 +251,24 @@ def test_a_backdated_entry_is_not_scored(client: TestClient) -> None:
     old = (date.today() - timedelta(days=30)).isoformat()
     r = _post(client, pid, "NVDA", entry_date=old, credit=2.0, risk_amount=1000)
     assert r.status_code == 201 and r.json()["entry_ev"] is None
+
+
+# ------------------------------------------------------------------ audit CSV export
+
+
+def test_audit_log_exports_as_csv(client: TestClient) -> None:
+    pid = _portfolio(client)
+    _post(client, pid, "NVDA")
+    r = client.get("/api/v1/logs/audit.csv", headers=ALICE)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+    lines = r.text.strip().splitlines()
+    assert lines[0] == "occurred_at,action,entity,entity_id,before,after"
+    assert len(lines) > 1 and any(",trade.add,trade," in line for line in lines)
+    only = client.get("/api/v1/logs/audit.csv", headers=ALICE, params={"entity": "nope"})
+    assert only.text.strip().splitlines() == [lines[0]]
+
+
+def test_audit_export_only_contains_the_callers_rows(client: TestClient) -> None:
+    _post(client, _portfolio(client), "NVDA")
+    bob = {"Authorization": "Bearer dev:bob"}
+    assert len(client.get("/api/v1/logs/audit.csv", headers=bob).text.strip().splitlines()) == 1

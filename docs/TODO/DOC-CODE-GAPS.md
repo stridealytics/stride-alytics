@@ -28,7 +28,6 @@ Documented but not (fully) built. Status per requirement is in `../BUSINESS/05-I
 | **Strategy preview and risk preview before entry** (FR-310, FR-320) | The Sizing page and the gate cover entry; the portfolio risk after a candidate trade is not previewed | — (Planned) |
 | **Watchlist IV / trend / risk columns, manual refresh, quick search** (FR-200, 210, 230) | Symbol, price, change %, news flag only; auto-refresh | — (Planned) |
 | **Show/hide widget toggles** (FR-130) | Stored in `widget_toggles`; no UI uses them | — (Planned) |
-| **Audit CSV export** (BR-064) | Trades CSV only | — (Planned) |
 | **API-latency and free-tier quota alerts** (BR-070, BR-071) | Pipeline failures only; no `cost_monitor` | A4 below |
 | **True margin** (BR-080) | Margin % is capital at risk / equity; no broker feed | Pending 24 |
 | **Smart rolling, backtesting, broker integration, WebSocket streaming, paid news feed** | Not built; Roll and Hedge are suggestions only | — (Planned) |
@@ -53,4 +52,3 @@ Documented but not (fully) built. Status per requirement is in `../BUSINESS/05-I
 | Documented | Actual |
 |---|---|
 | `scheduler/scripts/send_picks_email.py`, `report_metrics.py`, `cost_monitor.py` | Missing (noted in `05-SCHEDULER-LAYER.md`). Email and Datadog are optional; `cost_monitor` would help track free-tier limits. |
-| `shared/` folder (shown in `01-SYSTEM-OVERVIEW.md` and `03-FOLDER-STRUCTURE.md`) | Does not exist. Remove it from those docs or create it. |
