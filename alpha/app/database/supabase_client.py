@@ -98,8 +98,8 @@ if __name__ == "__main__":
 
     print("\n[INFO] Testing Supabase connection...")
     try:
-        resp = client.table("audit_log").select("*").limit(5).execute()
-        print("[OK] Connection OK — audit_log sample:")
+        resp = client.table("alpha_audit_log").select("*").limit(5).execute()
+        print("[OK] Connection OK — alpha_audit_log sample:")
         print(resp.data)
     except Exception as e:
         print("[ERROR] Supabase error:", e)

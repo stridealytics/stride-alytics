@@ -16,13 +16,13 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 5 | Real Supabase login end to end | P1 | you | Unit-tested only |
 | 19 | Gate and option data on a weekday, market hours | P1 | you + me | Saturday run done; weekday run open |
 | 25 | Decide the open-interest rule and the stale-earnings fail-safe | P1 | you | Findings recorded |
-| 6 | Real data ingestion for alpha | P2 | you + me | Decision needed (small universe or paid API) |
+| 6 | Real data ingestion for alpha | P2 | you | Free data chosen; `INGEST_LIVE=1` set; run once to check |
 | 7 | Clean up old duplicate rows in Supabase | P2 | you | Needs the database |
 | 8 | Protect the Streamlit dashboard | P2 | you | Needs hosting access |
 | 10 | Session renewal (refresh token) | P2 | me | Test it with item 5 |
 | 11 | `CORS_ORIGINS` on Render | P2 | you | Code fixes done (ticker source fixed) |
 | 17 | Close the doc-vs-code gaps | P2 | you + me | See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md) |
-| 18 | Alpha and backend table-name collisions | P2 | you | Decision needed |
+| 18 | Alpha and backend table-name collisions | P2 | you | Fixed in code (`alpha_trades`, `alpha_audit_log`); apply the schema |
 | 20 | Confirm the Phase 2 rule assumptions | P2 | you | Checklist below |
 | 21 | Rule thresholds as Settings (FR-830) | P2 | you | Built; apply migration 011 and check the Settings page |
 | 23 | Confirm Phase 3 behaviour (alerts, P&L x100) | P2 | you | Checklist below |
@@ -38,7 +38,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 ### 1. Open a pull request and get CI green
 - All work (scope docs, plan removal, security and trade fixes, Phases 1 to 4, PostgreSQL validation tooling, live-data fixes, auth hardening, alpha scoring) is committed and pushed on `feature/main-implementation` (origin is up to date as of 2026-11-14).
 - Next: open a PR into `develop` (the main branch) and let `.github/workflows/ci.yml` run. CI now fails on test failures, so the first run is the real check of the backend, alpha and frontend suites on Linux.
-- Watch for: the pre-commit hook (backend black auto-fix aborts the commit once), and alpha's linters, which already fail on older files and are not covered by the hooks (`ruff` 7 errors, `black` 18 files).
+- Watch for: the pre-commit hook (backend black auto-fix aborts the commit once), and alpha's checks, which now run in the pre-commit hook and in CI (ruff, black, pytest; the black step auto-fixes and aborts once, like the backend).
 - Done when: the PR's CI is green and it is merged.
 
 ### 2. Apply migrations 006 to 010 to Supabase
@@ -70,13 +70,12 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - **Fixed in `ingest.py`:** `hv_30d` is now computed from 3 months of price history (30-day realised volatility); NaN/inf become null before the push; Supabase connects only when pushing; the universe default is 100 tickers (`INGEST_MAX_TICKERS`); an empty yfinance result no longer crashes. Tests are in `alpha/tests/test_ingest.py`.
 - **Fixed (free version):** the missing Polygon/FMP fetchers are replaced by `alpha/app/data_sources/free_metrics.py`, which builds every screener column from yfinance with no key (option volume, open interest, spread %, ATM IV from the expiry nearest 30 days, ATR, trend, earnings, short interest, sector, market cap). `IV Rank` is a proxy (1-year percentile of 30-day realised vol); `Quality Score` is left empty (shown in `Data Gaps`). `INGEST_LIVE=1` makes `main.py` use it as the first data source; if it fails the run falls back to Supabase, CSV, then stops. Checked live on SOFI.
 - **You (small):** run the new `alter table ... add column if not exists market_cap, beta, float_shares` lines from `alpha/app/supabase_schema.sql` in Supabase. The pipeline writes those columns and the original table did not have them.
-- **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. Set `INGEST_LIVE=1` in the GitHub workflow after the first manual check.
-- Decide: a small watchlist universe, or a paid data API (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
+- **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. **Decided: stay on free yfinance data**, and `daily_run.yml` now sets `INGEST_LIVE=1`. Run the workflow once by hand and read the log (V18, V21) before trusting the schedule. A paid source can be added later (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
 - Done when: the scheduled run produces today's rows without a manually updated CSV.
 
 ### 7. Clean up old duplicate rows in Supabase
 - Earlier runs on the CSV/demo path stored timestamped dates and accumulated duplicates. The pipeline no longer wipes or duplicates anything (it adds new tickers and updates changed rows for the day), so existing duplicates stay until you remove them.
-- **You:** run the tables `ticker_universe` and `alpha_state` from `alpha/app/supabase_schema.sql` in Supabase (new). Then find duplicates with the `group by date, ticker having count(*) > 1` query in section 9 of that file, delete the extra copies, and optionally add the unique index described there.
+- **You:** run the tables `ticker_universe` and `alpha_state` from `alpha/app/supabase_schema.sql` in Supabase (new). Then run `alpha/scripts/dedupe_duplicates.sql` step by step in the SQL editor: it previews the surplus rows, saves them in `dup_backup_*` tables, deletes them (newest row per day and ticker is kept), trims legacy timestamped dates and adds unique indexes. Do this BEFORE the first protected run if you can; the SQL editor is not blocked by the code guard.
 - After the first complete run the data is protected: `reset_and_run.py` and `clear_all_tables()` refuse to run (`ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND` overrides on purpose). `clear_tables.sql` no longer truncates.
 - Not guarded: a manual `TRUNCATE` in the Supabase SQL editor. A database trigger could block that too; say if you want it.
 - Done when: each table has one row per ticker per day.
@@ -106,8 +105,9 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 
 ### 18. Table-name collisions between alpha and backend
 - `alpha/app/supabase_schema.sql` defines `trades` and `audit_log` with different columns than the backend's `trades` (migration 002). In one Supabase project whichever is created first wins and the other silently breaks. The new backend audit table was named `audit_events` to avoid the second clash.
-- Decide: separate Supabase projects/schemas for alpha and the backend, or rename alpha's tables (for example `alpha_trades`). Alpha's pipeline does not write `trades` today.
-- Done when: both schemas can coexist (or are kept apart) and this is documented in `ALPHA.md`.
+- **Fixed by renaming:** alpha's tables are now `alpha_trades` and `alpha_audit_log` (schema, `insert_trades` and the connection test); documented in `ALPHA.md`. Alpha's other tables have no backend counterpart.
+- **You:** run the new sections of `alpha/app/supabase_schema.sql`. If you ever created alpha's old `trades` or `audit_log` in a project shared with the backend, check which version of `trades` you actually have (the backend's has `portfolio_id` and `user_id`).
+- Done when: the schema is applied and the backend's `trades` is the backend's version.
 
 ### 19. Check the gate against real market data
 - **Done on a Saturday (2026-11-14):** 14 symbols, regime, option liquidity, sectors, chains and scenarios were run through the real yfinance providers; results are in `VALIDATION.md` ("Live-data results") and the findings are item 25. The gate blocked and cleared for the right reasons, and bid/ask were present rather than 0.

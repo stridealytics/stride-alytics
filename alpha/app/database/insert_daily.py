@@ -292,7 +292,7 @@ def insert_weekly_watchlist(df: pd.DataFrame) -> None:
 
 def insert_trades(df: pd.DataFrame) -> None:
     """
-    Insert trades into Supabase trades table.
+    Insert trades into the Supabase alpha_trades table (not the backend's ``trades``).
 
     Parameters
     ----------
@@ -312,4 +312,4 @@ def insert_trades(df: pd.DataFrame) -> None:
     ]
     rows = _rows(df, trade_cols)
     if rows:
-        get_supabase_client().table("trades").insert(rows).execute()
+        get_supabase_client().table("alpha_trades").insert(rows).execute()

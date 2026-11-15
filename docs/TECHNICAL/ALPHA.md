@@ -191,8 +191,12 @@ Run it from `alpha/` so the `app.*` imports resolve. It shows the **latest day o
 | `option_scores`    | Per-ticker per-day scores, trend, strategy      |
 | `bands`            | Per-ticker per-day band (A–E)                   |
 | `weekly_watchlist` | Weekly watchlist with strategy tags             |
-| `trades`           | Trade log (not written by the pipeline yet)     |
-| `audit_log`        | Change tracking (not written yet)               |
+| `alpha_trades`     | Trade log (not written by the pipeline yet)     |
+| `alpha_audit_log`  | Change tracking (not written yet)               |
+| `ticker_universe`  | One row per ticker, loaded once (soft-removed)  |
+| `alpha_state`      | Protection flags (`initial_load_complete`)      |
+
+The `alpha_` prefix keeps alpha's trade and audit tables from clashing with the backend's `trades` (migration 002) in a shared Supabase project.
 
 Every `date` column is TEXT holding `YYYY-MM-DD`. Run `app/supabase_schema.sql` in the Supabase SQL editor to create the tables.
 

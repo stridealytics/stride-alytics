@@ -6,6 +6,7 @@ echo "🔍 Running pre-commit checks..."
 # Detect what changed
 FRONTEND_CHANGED=$(git diff --cached --name-only | grep -E '^frontend/' | wc -l)
 BACKEND_CHANGED=$(git diff --cached --name-only | grep -E '^backend/' | wc -l)
+ALPHA_CHANGED=$(git diff --cached --name-only | grep -E '^alpha/' | wc -l)
 
 # Frontend checks
 if [ "$FRONTEND_CHANGED" -gt 0 ]; then
@@ -85,6 +86,38 @@ if [ "$BACKEND_CHANGED" -gt 0 ]; then
   uv run python -c "import app.main; import app.services; import app.api.v1.router; print('OK: backend imports clean')"
   if [ $? -ne 0 ]; then
     echo "❌ Backend import smoke test failed. Commit aborted."
+    exit 1
+  fi
+
+  echo "🧪 Running tests..."
+  uv run pytest tests -q
+  if [ $? -ne 0 ]; then
+    echo "❌ Tests failed. Commit aborted."
+    exit 1
+  fi
+
+  cd ..
+fi
+
+# Alpha checks
+if [ "$ALPHA_CHANGED" -gt 0 ]; then
+  echo ""
+  echo "🐍 Alpha changes detected, running alpha checks..."
+  cd alpha
+
+  echo "🔧 Ruff linting..."
+  uv run ruff check .
+  if [ $? -ne 0 ]; then
+    echo "❌ Ruff errors found. Commit aborted."
+    exit 1
+  fi
+
+  echo "🎨 Black formatting check..."
+  uv run black --check .
+  if [ $? -ne 0 ]; then
+    echo "⚠️  Black formatting issues found. Running auto-fix..."
+    uv run black .
+    echo "✨ Code auto-formatted. Stage changes and commit again."
     exit 1
   fi
 

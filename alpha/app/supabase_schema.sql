@@ -99,9 +99,9 @@ create index if not exists idx_weekly_watchlist_date on weekly_watchlist(date);
 
 
 -- ─────────────────────────────────────────────
--- 5. trades — Trade log
+-- 5. alpha_trades — Trade log (named alpha_* so it cannot clash with the backend's trades table)
 -- ─────────────────────────────────────────────
-create table if not exists trades (
+create table if not exists alpha_trades (
     id bigint generated always as identity primary key,
     date text not null,
     ticker text not null,
@@ -114,20 +114,20 @@ create table if not exists trades (
     inserted_at timestamp default now()
 );
 
-create index if not exists idx_trades_ticker on trades(ticker);
-create index if not exists idx_trades_date on trades(date);
+create index if not exists idx_alpha_trades_ticker on alpha_trades(ticker);
+create index if not exists idx_alpha_trades_date on alpha_trades(date);
 
 
 -- ─────────────────────────────────────────────
--- 6. audit_log — System events
+-- 6. alpha_audit_log — System events (named alpha_* to avoid the backend's tables)
 -- ─────────────────────────────────────────────
-create table if not exists audit_log (
+create table if not exists alpha_audit_log (
     id bigint generated always as identity primary key,
     timestamp text not null,
     event text not null
 );
 
-create index if not exists idx_audit_log_timestamp on audit_log(timestamp);
+create index if not exists idx_alpha_audit_log_timestamp on alpha_audit_log(timestamp);
 
 
 -- ─────────────────────────────────────────────
@@ -163,7 +163,7 @@ create table if not exists alpha_state (
 -- 9. Optional, once, after removing duplicate (date, ticker) rows:
 --    stops duplicates at the database level. The pipeline already avoids creating them.
 --
---    -- find them first:
+--    -- find them first (or run alpha/scripts/dedupe_duplicates.sql, which also removes them):
 --    --   select date, ticker, count(*) from daily_metrics group by 1, 2 having count(*) > 1;
 --    -- then, once clean:
 --    --   create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
