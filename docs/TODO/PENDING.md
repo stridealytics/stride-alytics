@@ -67,7 +67,10 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 
 ### 6. Real data ingestion for alpha
 - Nothing fetches fresh data: the run uses today's Supabase rows, then `alpha/raw_screener.csv`. `app/ingest.py` is not called anywhere.
-- `ingest.py` also needs work: it targets up to 2000 tickers (not possible on free API tiers), `historicalVolatility` does not exist in yfinance so `hv_30d` is always null, it connects to Supabase at import time, and it pushes NaN values.
+- **Fixed in `ingest.py`:** `hv_30d` is now computed from 3 months of price history (30-day realised volatility); NaN/inf become null before the push; Supabase connects only when pushing; the universe default is 100 tickers (`INGEST_MAX_TICKERS`); an empty yfinance result no longer crashes. Tests are in `alpha/tests/test_ingest.py`.
+- **Fixed (free version):** the missing Polygon/FMP fetchers are replaced by `alpha/app/data_sources/free_metrics.py`, which builds every screener column from yfinance with no key (option volume, open interest, spread %, ATM IV from the expiry nearest 30 days, ATR, trend, earnings, short interest, sector, market cap). `IV Rank` is a proxy (1-year percentile of 30-day realised vol); `Quality Score` is left empty (shown in `Data Gaps`). `INGEST_LIVE=1` makes `main.py` use it as the first data source; if it fails the run falls back to Supabase, CSV, then stops. Checked live on SOFI.
+- **You (small):** run the new `alter table ... add column if not exists market_cap, beta, float_shares` lines from `alpha/app/supabase_schema.sql` in Supabase. The pipeline writes those columns and the original table did not have them.
+- **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. Set `INGEST_LIVE=1` in the GitHub workflow after the first manual check.
 - Decide: a small watchlist universe, or a paid data API (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
 - Done when: the scheduled run produces today's rows without a manually updated CSV.
 
@@ -170,13 +173,13 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 
 ### 13. Alpha data robustness
 - **Fixed:** `compute_option_score` no longer raises on `None`/NaN/bad values; a missing input earns no point and is named in a new `Data Gaps` column (it shows in Sheets; it is not stored in Supabase). Decide whether rows with gaps should be excluded from the watchlist or flagged in the dashboard.
-- Google Sheets push: ranges are capped at A–Z and 500 rows; `USER_ENTERED` can turn text from external data into formulas.
-- `app/secrets_loader.py` is never called.
+- **Fixed:** the Sheets push now uses `RAW` (no formula injection), clears the whole sheet, grows the grid for more than 26 columns or 500 rows, writes blanks instead of `nan`, and no longer hides a failed clear. Tests: `alpha/tests/test_sheets.py` (fake API). The real push is still a manual check (needs your Sheets key).
+- **Fixed:** the unused `app/secrets_loader.py` was deleted.
 - `alpha/.env.example` exists locally but is not tracked in git, while the README tells people to copy it. Commit it (without secrets) or fix the README.
 - Done when: bad inputs are rejected or reported, not scored as zero.
 
 ### 14. Test coverage
-- Frontend has 113 unit tests, backend 382, alpha 21 (Active Holdings, Active Trades and the auth store are now covered). The Greeks, Screener and Portfolio pages are still thin.
+- Frontend has 113 unit tests, backend 382, alpha 36 (Active Holdings, Active Trades and the auth store are now covered). The Greeks, Screener and Portfolio pages are still thin.
 - CI now fails on test failures (it used to swallow them with `|| echo`); confirm the first run on GitHub is green.
 - `mypy` is blocked by a Windows Application Control policy on this machine; run it in CI or another environment.
 - **Alpha lint fails on older files** (`ruff` 7 errors, 6 auto-fixable; `black` would reformat 18 files). The pre-commit hook does not cover alpha, but CI may. Run `uv run ruff check --fix . && uv run black .` in `alpha/` as its own commit, or exclude the files.

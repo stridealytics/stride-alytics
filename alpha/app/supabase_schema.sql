@@ -35,6 +35,11 @@ create table if not exists daily_metrics (
     inserted_at timestamp default now()
 );
 
+-- Columns the pipeline writes but the first version of this table lacked.
+alter table daily_metrics add column if not exists market_cap numeric;
+alter table daily_metrics add column if not exists beta numeric;
+alter table daily_metrics add column if not exists float_shares numeric;
+
 create index if not exists idx_daily_metrics_ticker on daily_metrics(ticker);
 create index if not exists idx_daily_metrics_date on daily_metrics(date);
 

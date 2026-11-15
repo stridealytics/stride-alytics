@@ -23,7 +23,6 @@ alpha/
 │   ├── main.py                     # Pipeline orchestrator (run_system / main)
 │   ├── streamlit_app.py            # Streamlit dashboard
 │   ├── config.py                   # Environment config
-│   ├── secrets_loader.py           # Required-key validator (not called by main)
 │   ├── ingest.py                   # Multi-source ingestion (not wired into main yet)
 │   ├── supabase_schema.sql         # Supabase table definitions
 │   ├── utils/

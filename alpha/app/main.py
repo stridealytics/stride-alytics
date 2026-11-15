@@ -20,6 +20,7 @@ import time
 import pandas as pd
 
 from app.utils.load_data import load_from_supabase, load_local_csv
+from app.preflight import check_environment
 from app.utils.notify import send_alert
 from app.screener.compute_option_score import compute_option_score
 from app.screener.apply_filters import apply_daily_filters
@@ -81,7 +82,19 @@ def _sample_data() -> pd.DataFrame:
 
 
 def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
-    """Return ``(source, df)`` with source in {'supabase', 'csv', 'sample'}."""
+    """Return ``(source, df)`` with source in {'live', 'supabase', 'csv', 'sample'}."""
+    if os.getenv("INGEST_LIVE") == "1":
+        print("Fetching fresh data from yfinance (INGEST_LIVE=1)...")
+        try:
+            from app.ingest import run_ingestion_pipeline
+
+            df = run_ingestion_pipeline()
+            if not df.empty:
+                return "live", df
+            print("[WARNING] Live fetch returned no rows; falling back.")
+        except Exception as e:
+            print(f"[WARNING] Live fetch failed ({e}); falling back.")
+
     print("Loading data from Supabase...")
     df = load_from_supabase()
     if not df.empty:
@@ -116,6 +129,12 @@ def run_system(allow_sample: bool | None = None) -> None:
     """Run the full daily option screening pipeline. Raises on failure."""
     if allow_sample is None:
         allow_sample = os.getenv("ALLOW_SAMPLE_DATA") == "1"
+
+    check = check_environment(allow_sample=allow_sample)
+    for note in check.notes:
+        print(f"[INFO] {note}")
+    if not check.ok:
+        raise RuntimeError("Setup incomplete:\n  - " + "\n  - ".join(check.errors))
 
     # 1. Load raw data — Supabase first, then CSV, then (opt-in only) sample data
     source, df = _load_data(allow_sample)

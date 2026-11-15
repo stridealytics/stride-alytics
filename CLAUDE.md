@@ -32,6 +32,7 @@ Python modules need Python 3.12 (backend, scheduler) or 3.11+ (alpha) and use uv
 - `streamlit run app/streamlit_app.py`: run from `alpha/` so `app.*` imports resolve
 - `uv run lint|format|typecheck|verify`: ruff and black (line length 100), strict mypy
 - `uv run pytest tests -q`: pipeline I/O tests (fake Supabase client, no network)
+- `app/preflight.py` runs first and lists every missing setting at once (Supabase URL/key, Sheets credentials); optional features are reported as skipped.
 - The pipeline fails (non-zero exit + Slack/Discord alert) when there is no real data or a Supabase write fails. Built-in sample rows are used only with `ALLOW_SAMPLE_DATA=1` and are never written.
 
 **backend** (`cd backend`)
@@ -67,7 +68,7 @@ Setup: `scripts/setup-dev.sh` or `scripts/setup-dev.ps1` installs dependencies a
 
 Failures in the insert and Sheets steps only log a warning.
 
-`app/ingest.py` merges yfinance, Polygon, FMP and Massive through `data_sources/`. `alpha/app/streamlit_app.py` reads Supabase tables with `st.cache_data`. The root `requirements.txt` mirrors alpha's dependencies for Streamlit Cloud.
+`app/ingest.py` fetches free yfinance metrics through `data_sources/free_metrics.py` (key-free; used first when `INGEST_LIVE=1`). The Polygon, FMP and Massive modules in `data_sources/` are not used by it. `alpha/app/streamlit_app.py` reads Supabase tables with `st.cache_data`. The root `requirements.txt` mirrors alpha's dependencies for Streamlit Cloud.
 
 **Persistence** (`backend/app`): endpoints use `Repo` (`repositories/sql.py`) through `get_ctx` in `api/deps.py`, which resolves the user, creates their `public.users` row on first sight and scopes every query to them. PostgreSQL is used when `DATABASE_URL` is set; otherwise an in-memory SQLite fallback starts (data lost on restart, warning logged). The ORM models define the SQLite schema and the `.sql` files in `database/migrations/` are the PostgreSQL source of truth, so change both together. `signal_log` and `audit_events` are append-only (DB trigger + `ImmutableRecordError`); every trade, portfolio, watchlist and settings change writes an audit row in the same transaction. Alpha's `trades` / `audit_log` tables have different columns than the backend's (see `docs/TODO/PENDING.md`).
 

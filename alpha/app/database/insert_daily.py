@@ -27,6 +27,7 @@ CSV_TO_DB_COLUMNS = {
     "Band": "band",
     "Sector": "sector",
     "Market Cap": "market_cap",
+    "Beta": "beta",
     "Strategy Tag": "strategy",
 }
 

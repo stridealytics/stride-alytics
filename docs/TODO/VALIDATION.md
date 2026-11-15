@@ -130,3 +130,7 @@ uv run ruff check . && uv run black --check .
 - Sectors: Technology, Financial Services, Energy, "ETF / Index"; an unknown symbol gives None (shown as Unknown).
 - Chain: 4 symbols load live with 8 expiries and valid JSON after the fixes in Pending 25.
 - Still to do: repeat on a weekday during market hours and pre-market.
+
+### V18. Alpha Sheets push and ingestion (needs your keys)
+- Set `GOOGLE_SERVICE_ACCOUNT_JSON` and `GOOGLE_SHEETS_SPREADSHEET_ID` (use a spare spreadsheet), run the alpha pipeline, and check: more than 26 columns and more than 500 rows fit; a cell starting with `=` shows as text; a second, shorter push leaves no old rows.
+- Free ingestion: after running the `alter table` lines from `alpha/app/supabase_schema.sql`, run `INGEST_LIVE=1 uv run python app/main.py` with `INGEST_MAX_TICKERS=5` and check `daily_metrics` has `hv_30d`, `iv_30d`, `market_cap` filled and no `nan` text. Test on a market day for option volume and open interest.
