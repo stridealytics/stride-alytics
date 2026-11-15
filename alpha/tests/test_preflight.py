@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app import main
@@ -49,3 +51,41 @@ def test_run_fails_before_loading_data_when_setup_is_incomplete(monkeypatch) -> 
     monkeypatch.setattr(main, "_load_data", must_not_load)
     with pytest.raises(RuntimeError, match="Setup incomplete"):
         main.run_system(allow_sample=False)
+
+
+FAKE_KEY = json.dumps(
+    {
+        "type": "service_account",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nFAKE-NOT-A-REAL-KEY\n-----END PRIVATE KEY-----\n",
+        "client_email": "fake@fake-project.iam.gserviceaccount.com",
+    }
+)
+REAL_LOOKING = json.dumps(
+    {
+        "type": "service_account",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIE\n",
+        "client_email": "bot@proj.iam.gserviceaccount.com",
+    }
+)
+
+
+def test_the_fake_placeholder_key_skips_sheets_instead_of_calling_google() -> None:
+    result = check_environment(
+        {**FULL, "GOOGLE_SHEETS_SPREADSHEET_ID": "sheet", "GOOGLE_SERVICE_ACCOUNT_JSON": FAKE_KEY},
+        have_service_file=False,
+    )
+    assert result.ok and result.skip_sheets
+    assert any("fake placeholder" in n for n in result.notes)
+
+
+def test_a_real_looking_key_is_not_treated_as_a_placeholder() -> None:
+    from app.preflight import is_placeholder_credentials
+
+    assert not is_placeholder_credentials(REAL_LOOKING)
+    assert not is_placeholder_credentials("not json") and not is_placeholder_credentials(None)
+    env = {
+        **FULL,
+        "GOOGLE_SHEETS_SPREADSHEET_ID": "sheet",
+        "GOOGLE_SERVICE_ACCOUNT_JSON": REAL_LOOKING,
+    }
+    assert not check_environment(env, have_service_file=False).skip_sheets

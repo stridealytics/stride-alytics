@@ -28,7 +28,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 23 | Confirm Phase 3 behaviour (alerts, P&L x100) | P2 | you | Checklist below |
 | 24 | Confirm Phase 4 behaviour (limits, matrix, EV) | P2 | you | Checklist below |
 | 22 | Band usage endpoint shape | P3 | you | Decision |
-| 26 | `alpha/.env.example` holds what looks like a real private key | P1 | you | Rotate the key if it was ever shared; replace the file with placeholders |
+| 26 | Google service-account key exposed locally | P1 | you | Template fixed; rotate the key in Google Cloud |
 | 12 to 16 | Spec mismatches, alpha robustness and lint, tests, leftovers, hygiene (incl. the unexplained file revert) | P3 | me + you | Partly done |
 
 ---
@@ -202,7 +202,6 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - Done when: the MCP server connects or is removed, and the credential file is confirmed ignored.
 
 ### 26. Possible real secret in `alpha/.env.example`
-- The local file `alpha/.env.example` (untracked; ignored by the `.env*` rule) contains a full-looking Google service-account JSON including a private key. It was never committed.
-- **You:** if the key is real, create a new key in Google Cloud and delete this one. Then replace the file with placeholders and add `!.env.example` to `.gitignore` so the template can be tracked.
-- **Me, after you confirm:** write the placeholder template and the `.gitignore` exception.
-- Done when: the template is tracked with placeholders only and the old key is revoked.
+- **Fixed in the repo:** `alpha/.env.example` is now a placeholder template and `.gitignore` re-allows it (`!.env.example`), so it can be committed. The key was never in git history (only the placeholder `service_account.example.json` is tracked). The real key remains in the ignored local file `alpha/service_account.json`.
+- **You (the part that matters):** the key may also have appeared in an earlier tool output of this Claude Code session's local transcript, so treat it as exposed. In Google Cloud Console: IAM and Admin, Service Accounts, the account, Keys: add a new key (JSON), save it as `alpha/service_account.json` (ignored by git), then delete the old key. If you use the `GOOGLE_SERVICE_ACCOUNT_JSON` GitHub secret, update it with the new JSON.
+- Done when: the old key is deleted in Google Cloud and the new one works (run the Sheets push once, V18).

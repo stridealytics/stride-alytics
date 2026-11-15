@@ -2,15 +2,42 @@
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+
+
+def is_placeholder_credentials(text: str | None) -> bool:
+    """True for the fake service-account JSON used for local work (never a working key)."""
+    if not text:
+        return False
+    try:
+        info = json.loads(text)
+    except ValueError:
+        return False
+    if not isinstance(info, dict):
+        return False
+    return "FAKE" in str(info.get("private_key", "")) or str(info.get("client_email", "")).endswith(
+        "@fake-project.iam.gserviceaccount.com"
+    )
+
+
+def _credential_text(env: Mapping[str, str]) -> str | None:
+    if env.get("GOOGLE_SERVICE_ACCOUNT_JSON"):
+        return env["GOOGLE_SERVICE_ACCOUNT_JSON"]
+    for path in ("service_account.json", "../service_account.json"):
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+    return None
 
 
 @dataclass
 class Preflight:
     errors: list[str] = field(default_factory=list)  # the run cannot work without these
     notes: list[str] = field(default_factory=list)  # optional features that will be skipped
+    skip_sheets: bool = False  # the credentials are a placeholder, so do not call Google
 
     @property
     def ok(self) -> bool:
@@ -43,6 +70,12 @@ def check_environment(
             result.errors.append(
                 "GOOGLE_SHEETS_SPREADSHEET_ID is set but there are no Google credentials "
                 "(set GOOGLE_SERVICE_ACCOUNT_JSON or add service_account.json)."
+            )
+        elif is_placeholder_credentials(_credential_text(env)):
+            result.skip_sheets = True
+            result.notes.append(
+                "Google Sheets push skipped: the credentials are the fake placeholder key. "
+                "Add a real key to push for real."
             )
     else:
         result.notes.append("Google Sheets push skipped (GOOGLE_SHEETS_SPREADSHEET_ID not set).")

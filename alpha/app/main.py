@@ -191,7 +191,9 @@ def run_system(allow_sample: bool | None = None) -> None:
     _after_load(df_bands)
 
     # 8. Push to Google Sheets (only if configured). Failures alert but don't fail the run.
-    if not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):
+    if check.skip_sheets:
+        print("Google Sheets skipped (placeholder credentials).")
+    elif not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):
         print("Google Sheets not configured (GOOGLE_SHEETS_SPREADSHEET_ID unset) — skipping.")
     elif daily.empty:
         print("No candidates passed the daily filters — skipping Google Sheets.")
