@@ -34,7 +34,7 @@ async def exit_alerts(
     ``min_severity=normal`` returns every open position (used by Active Holdings).
     """
     account = await load_account(ctx)
-    alerts = await evaluate_open_positions(ctx, provider, account.regime.score)
+    alerts = await evaluate_open_positions(ctx, provider, account.regime.score, account.limits)
     dicts, unacknowledged = await annotate_acks(ctx, alerts)
     shown = [d for d in dicts if rank(d["severity"]) >= rank(min_severity)]
     return {
@@ -57,7 +57,7 @@ async def acknowledge(
 ) -> dict[str, Any]:
     """Acknowledge an alert that is firing right now. Critical alerts require this (BR-096)."""
     account = await load_account(ctx)
-    alerts = await evaluate_open_positions(ctx, provider, account.regime.score)
+    alerts = await evaluate_open_positions(ctx, provider, account.regime.score, account.limits)
     trade_id = str(payload.trade_id)
     severity = next(
         (

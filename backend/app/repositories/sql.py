@@ -23,6 +23,7 @@ from sqlalchemy.orm import selectinload
 
 from app import models as m
 from app.domain.regime_score import RegimeScore
+from app.domain.thresholds import resolve as resolve_thresholds
 from app.services.portfolio import Portfolio, Trade, calculate_pnl
 
 
@@ -45,6 +46,7 @@ SETTINGS_FIELDS = (
     "regime_weights",
     "widget_toggles",
     "enforce_gate",
+    "thresholds",
 )
 
 
@@ -611,6 +613,7 @@ class Repo:
         for k in ("account_size", "base_risk_pct", "growth_risk_pct", "min_equity"):
             out[k] = float(out[k])
         out["disclaimer_accepted_at"] = _iso(row.disclaimer_accepted_at)
+        out["effective_thresholds"] = resolve_thresholds(out["thresholds"]).to_dict()
         return out
 
     async def get_settings(self, user_id: UUID) -> dict[str, Any]:

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { RuleThresholds } from "../components/settings/RuleThresholds";
 import { Button, Card, Input, PageHeader } from "../components/ui";
 import { useScreenerLimits, useSettings, useUpdateSettings } from "../hooks/queries";
 import { useAuthStore } from "../store";
@@ -168,6 +169,8 @@ export function SettingsPage() {
           </>
         )}
       </form>
+
+      <RuleThresholds />
 
       <Card title="Danger zone">
         <Button variant="danger" onClick={logout}>

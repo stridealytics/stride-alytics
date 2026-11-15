@@ -22,7 +22,7 @@ Documented but not (fully) built. Status per requirement is in `../BUSINESS/05-I
 | Requirement | Status in code | Tracked in |
 |---|---|---|
 | **Alerts / notifications** (FR-800–830) | Regime-change and pipeline alerts go to Slack; exit alerts are in-app only (no push or email) | Pending 23 |
-| **Configurable rule thresholds** (FR-830) | Gate, alert and risk limits are constants in `backend/app/domain/`; only risk %, equity guardrail, band caps and regime weights are in Settings | Pending 21 |
+| **Configurable rule thresholds** (FR-830) | Ten limits are in Settings; regime boundaries, profit and loss alert levels and the Base-layer $10B cap are still constants | Pending 21 |
 | **Correlation rule** (BR-013, FR-930) | Reported as "not evaluated" in the gate; needs return histories and a threshold | Pending 24 |
 | **Entry EV stored on trades** (FR-920) | Not stored, so `/analytics/ev-calibration` shows realised results only | Pending 24 |
 | **Strategy detail page** (BR-093, FR-1140) | Matrix cells link to the Screener | Pending 24 |

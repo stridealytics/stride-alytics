@@ -24,7 +24,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 17 | Close the doc-vs-code gaps | P2 | you + me | See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md) |
 | 18 | Alpha and backend table-name collisions | P2 | you | Decision needed |
 | 20 | Confirm the Phase 2 rule assumptions | P2 | you | Checklist below |
-| 21 | Rule thresholds as Settings (FR-830) | P2 | me | After items 20, 23, 24 are confirmed |
+| 21 | Rule thresholds as Settings (FR-830) | P2 | you | Built; apply migration 011 and check the Settings page |
 | 23 | Confirm Phase 3 behaviour (alerts, P&L x100) | P2 | you | Checklist below |
 | 24 | Confirm Phase 4 behaviour (limits, matrix, EV) | P2 | you | Checklist below |
 | 22 | Band usage endpoint shape | P3 | you | Decision |
@@ -123,10 +123,11 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
   - [ ] **Back-dated entries** (more than 1 day old) skip the gate.
 - Done when: each box is ticked (accepted) or a change has been made.
 
-### 21. Rule thresholds are constants, not settings
-- The gate's thresholds (spread 10%, open interest 500, market cap $2B/$10B, earnings 14 days, regime floor 25) live in `backend/app/domain/gate.py`. FR-830 asks for configurable thresholds.
-- Changing one today means editing code and redeploying; there is no audit trail for the change except git.
-- Done when: they are exposed in Settings (with audit), or the docs say they are fixed.
+### 21. Rule thresholds as Settings
+- **Built:** Settings now has a "Rule thresholds" section with 10 values (spread, open interest, market cap, earnings window, capital-at-risk, sector and net-delta limits, alert Watch and Warning days, assignment delta). Defaults are unchanged. Each has an allowed range; loosening a safety rule is allowed and shows a warning; every change is audit-logged; "Reset to defaults" clears them. Stored in `user_settings.thresholds` (migration 011).
+- **Not configurable yet:** regime boundaries (40/70) and floor (25), the profit and loss alert levels, and the Base-layer $10B market cap (BR-042).
+- **You:** apply `011_rule_thresholds.sql` in Supabase (it is additive; the down file drops the column), then change one value in Settings and check the gate and the audit log react (Validation V19). If you want the open-interest rule lower for weekly options (item 25), you can now set it there.
+- Done when: V19 passes on the real database.
 
 ### 22. Band usage endpoint differs from the plan
 - The plan said `GET /portfolio/{id}/bands`; it was built as `GET /portfolio/bands` because the band caps apply to the whole account, not to one portfolio. The Sizing page and the status docs use the account-wide version.
@@ -157,7 +158,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 ### 25. Live-data findings (checked 2026-11-14, a Saturday, so quotes were Friday's close)
 - **Fixed:** the chain loader fetched only the first 3 expirations, so for AAPL (Mon/Wed/Fri weeklies) every contract expired within 6 days and the Option Chain page and the screener's 30-day window found nothing. It now picks up to 8 expirations spread across the window (default 90 days; the screener uses its own `expiry_days_max`).
 - **Fixed:** one contract with a missing volume or open interest (NaN) made `int(NaN)` raise and dropped its whole expiry; NaN also leaked into JSON. Parsing is now NaN-safe, and contracts with no implied volatility are skipped instead of being given an invented 0.3.
-- **Open, decide:** the open-interest minimum of 500 (BR-018) blocks weekly options. The ATM puts of the 30-day weekly (11 Dec) had OI 314 (AAPL), 255 (SPY) and 191 (MSFT), while the monthly (18 Dec) has tens of thousands. Either keep the rule (trade monthlies) or lower it; this is part of item 21.
+- **Open, decide:** the open-interest minimum of 500 (BR-018) blocks weekly options. The ATM puts of the 30-day weekly (11 Dec) had OI 314 (AAPL), 255 (SPY) and 191 (MSFT), while the monthly (18 Dec) has tens of thousands. Either keep the rule (trade monthlies) or lower it; you can now change it in Settings (item 21).
 - **Open, accept or change:** when yfinance gives only a past earnings date (Ford: 2026-10-28), BR-020 blocks with "could not verify the next earnings date". That is the intended fail-safe, but it blocks every trade in such symbols until the date updates.
 - **Not yet checked:** a weekday, during market hours and in pre-market, when bid/ask can be 0. Repeat the V15 option checks then.
 - Cosmetic: yfinance logs HTTP 404 for SPY/QQQ fundamentals (ETFs have none); the gate handles ETFs correctly.

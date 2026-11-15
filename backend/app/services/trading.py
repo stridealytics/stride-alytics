@@ -11,6 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.api.deps import Ctx
 from app.domain import gate as g
 from app.domain.regime_score import RegimeScore
+from app.domain.thresholds import DEFAULTS, Thresholds, resolve
 from app.services import regime_service
 from app.services.position_data import PositionDataProvider
 from app.services.positions import assignment_alarm_count, evaluate_open_positions
@@ -26,6 +27,8 @@ class Account:
     assignment_alarms: int | None = None
     # Capital at risk in open trades (BR-081).
     capital_at_risk: float = 0.0
+    # The user's rule thresholds (defaults plus their changes).
+    limits: Thresholds = DEFAULTS
 
 
 async def load_account(ctx: Ctx, position_provider: PositionDataProvider | None = None) -> Account:
@@ -37,9 +40,10 @@ async def load_account(ctx: Ctx, position_provider: PositionDataProvider | None 
     settings = await ctx.repo.get_settings(ctx.user_id)
     regime = await run_in_threadpool(regime_service.current_regime, settings["regime_weights"])
     equity = settings["account_size"] + await ctx.repo.realized_pnl(ctx.user_id)
+    limits = resolve(settings.get("thresholds"))
     alarms: int | None = None
     if position_provider is not None:
-        alerts = await evaluate_open_positions(ctx, position_provider, regime.score)
+        alerts = await evaluate_open_positions(ctx, position_provider, regime.score, limits)
         alarms = assignment_alarm_count(alerts)
     return Account(
         settings=settings,
@@ -47,6 +51,7 @@ async def load_account(ctx: Ctx, position_provider: PositionDataProvider | None 
         equity=round(equity, 2),
         assignment_alarms=alarms,
         capital_at_risk=await ctx.repo.open_committed(ctx.user_id),
+        limits=limits,
     )
 
 
@@ -57,6 +62,7 @@ def master_gate(account: Account) -> g.GateResult:
         min_equity=account.settings["min_equity"],
         assignment_alarms=account.assignment_alarms,
         capital_at_risk=account.capital_at_risk,
+        limits=account.limits,
     )
 
 
@@ -94,6 +100,7 @@ async def entry_gate(
         today=date.today(),
         assignment_alarms=account.assignment_alarms,
         capital_at_risk=account.capital_at_risk,
+        limits=account.limits,
     )
 
 

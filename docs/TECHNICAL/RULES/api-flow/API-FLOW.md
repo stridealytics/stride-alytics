@@ -214,7 +214,8 @@ All under `/api/v1` unless noted. "Auth" = Bearer token required.
 | `GET /trades/export.csv[?portfolio_id=]` | yes | CSV download; text cells are neutralised against formula injection |
 | `GET /trades/{portfolio_id}`, `POST /trades`, `PATCH /trades/{id}` (notes only), `POST /trades/{id}/close` | yes | `POST /trades` runs the Do-Not-Trade gate and answers **409** with `error.details.reasons` when blocked (nothing is saved, every reason is logged). Close is 409 if already closed, 422 if exit date is before entry. Prices and dates are never edited |
 | `GET/POST /watchlists`, `GET/DELETE /watchlists/{id}`, `POST /watchlists/{id}/symbols`, `DELETE /watchlists/{id}/symbols/{symbol}`, `GET /watchlists/{id}/export.csv` | yes | Per-user lists; symbols upper-cased and de-duplicated |
-| `GET/PUT /settings`, `POST /settings/disclaimer` | yes | Partial update; band caps and regime weights are validated; changes are audit-logged |
+| `GET/PUT /settings`, `POST /settings/disclaimer` | yes | Partial update; band caps, regime weights and `thresholds` are validated (422 on an unknown key or out-of-range value); changes are audit-logged. `PUT` with `thresholds` also returns `warnings` (safety rules set looser than the default); `thresholds: {}` resets them |
+| `GET /settings/thresholds` | yes | Defaults, allowed ranges, the user's overrides, the effective values and the loosened list for the rule thresholds (FR-830) |
 | `GET /gate` | yes | Master gate: `status` (`CLEAR TO TRADE` / `BLOCKED`), `reasons`, `regime`, `equity`, `layer_split`, `growth_locked`, `not_evaluated` |
 | `POST /gate/check` | yes | Dry run of the full entry gate for a candidate trade; writes nothing to the logs. Back-dated entries return `skipped: true` |
 | `POST /sizing/calculate` | yes | Quantity and risk from Settings, the regime and band use; `credit` or `max_loss_per_contract` |

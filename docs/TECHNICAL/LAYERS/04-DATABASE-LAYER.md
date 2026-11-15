@@ -538,3 +538,7 @@ The Weekly Picks page reads the existing `weekly_picks` table (written by the sc
 ## 18. Saved scenarios (migration 010)
 
 `010_scenarios.sql` (down file included) adds `scenarios`: a user's named stress tests with their shocks (`params`: `spot_pct`, `iv_shift`, `days_forward`) in JSONB, unique per user and name. Row-level security limits each row to its owner. Saving and deleting a scenario writes an `audit_events` row.
+
+## 19. Rule thresholds (migration 011)
+
+`011_rule_thresholds.sql` (down file included) adds `user_settings.thresholds` (JSONB, default `{}`). It holds only the rule thresholds the user changed; any missing key uses the default in `backend/app/domain/thresholds.py`, which also defines each key's allowed range. Changes go through `PUT /settings` and write a `settings.update` row to `audit_events` (before and after values).

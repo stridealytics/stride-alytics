@@ -134,3 +134,10 @@ uv run ruff check . && uv run black --check .
 ### V18. Alpha Sheets push and ingestion (needs your keys)
 - Set `GOOGLE_SERVICE_ACCOUNT_JSON` and `GOOGLE_SHEETS_SPREADSHEET_ID` (use a spare spreadsheet), run the alpha pipeline, and check: more than 26 columns and more than 500 rows fit; a cell starting with `=` shows as text; a second, shorter push leaves no old rows.
 - Free ingestion: after running the `alter table` lines from `alpha/app/supabase_schema.sql`, run `INGEST_LIVE=1 uv run python app/main.py` with `INGEST_MAX_TICKERS=5` and check `daily_metrics` has `hv_30d`, `iv_30d`, `market_cap` filled and no `nan` text. Test on a market day for option volume and open interest.
+
+### V19. Rule thresholds (migration 011, needs your database)
+- Apply `database/migrations/011_rule_thresholds.sql` to a throwaway Postgres first (and its `_down` once), then to Supabase.
+- In Settings, set "Widest bid/ask spread" to 5 and save: the gate on a candidate with a 7% spread must now block it; "Reset to defaults" must allow it again.
+- Set "Minimum open interest" to 100: the page shows "Looser than the default" and the save returns a warning.
+- Open the Signal/Audit log: each save appears as a `settings.update` row with the before and after values.
+- Try a value outside its range through the API: it must answer 422 and change nothing.

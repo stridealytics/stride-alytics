@@ -11,6 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.api.deps import Ctx
 from app.domain.alerts import MarketInput, PositionInput
 from app.domain.portfolio_risk import PositionRisk, calculate_portfolio_risk
+from app.domain.thresholds import DEFAULTS, Thresholds
 from app.services.position_data import PositionDataProvider
 from app.services.positions import _market, _to_input, evaluate_open_positions
 from app.services.scenarios import Shock, run_scenario, spot_ladder
@@ -31,9 +32,10 @@ async def build_portfolio_risk(
     *,
     equity: float,
     regime_score: float | None,
+    limits: Thresholds = DEFAULTS,
 ) -> dict[str, Any]:
     """Net delta, margin %, sector exposure and limit breaches for the open positions."""
-    alerts = await evaluate_open_positions(ctx, provider, regime_score)
+    alerts = await evaluate_open_positions(ctx, provider, regime_score, limits)
     symbols = sorted({a.symbol for a in alerts})
     found = await asyncio.gather(*[_sector(sectors, s) for s in symbols])
     by_symbol = dict(zip(symbols, found))
@@ -48,7 +50,7 @@ async def build_portfolio_risk(
         )
         for a in alerts
     ]
-    risk = calculate_portfolio_risk(positions, equity).to_dict()
+    risk = calculate_portfolio_risk(positions, equity, limits).to_dict()
     risk["open_positions"] = len(alerts)
     risk["regime_score"] = regime_score
     return risk
