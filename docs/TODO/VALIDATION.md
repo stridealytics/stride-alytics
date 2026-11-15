@@ -149,6 +149,7 @@ uv run ruff check . && uv run black --check .
 - Add a short put with a credit, a risk amount, a strike and an expiry: the trade shows an `entry_ev`. Close it; Analytics, EV calibration shows the average expected value and how many trades carry one.
 
 ### V21. Load once, then only changes (alpha, needs your Supabase and `INGEST_LIVE=1`)
+- First run `uv run python -m app.inspect_target` (read-only) to see which project this is, then `uv run python app/main.py --dry-run` with `INGEST_LIVE=1` to see what would be written.
 - Run the `ticker_universe` and `alpha_state` blocks of `alpha/app/supabase_schema.sql` in Supabase (use a throwaway project first).
 - First run (`INGEST_LIVE=1 uv run python app/main.py`): `ticker_universe` fills with one row per ticker, the day's four tables fill, and `alpha_state` gets `initial_load_complete = true`.
 - Run it again straight away: the log says `Universe sync: {'added': 0, ...}` and every table reports `inserted: 0`; only rows whose values moved show `updated`.

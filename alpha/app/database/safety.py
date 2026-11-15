@@ -19,6 +19,14 @@ UNLOCK_ENV = "ALPHA_UNLOCK_DESTRUCTIVE"
 UNLOCK_VALUE = "I-UNDERSTAND"
 
 
+DRY_RUN_ENV = "ALPHA_DRY_RUN"
+
+
+def dry_run() -> bool:
+    """True when the run must only read and report (``--dry-run`` or ``ALPHA_DRY_RUN=1``)."""
+    return os.getenv(DRY_RUN_ENV) == "1"
+
+
 class DestructiveOperationBlocked(RuntimeError):
     """A bulk delete was refused because the data has been loaded and is now protected."""
 

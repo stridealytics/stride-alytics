@@ -79,6 +79,13 @@ alpha/
    - **Protection:** after the first complete load the run sets `initial_load_complete` in `alpha_state`. From then on `clear_all_tables()` and `delete_rows()` refuse to run (also if the flag cannot be read). Override on purpose with `ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND`. `reset_and_run.py` goes through the same guard.
 7. **Google Sheets** — only if `GOOGLE_SHEETS_SPREADSHEET_ID` is set: `push_to_sheet()` writes 3 worksheets: "Screener", "Daily Candidates", "Weekly Watchlist".
 
+### Safe first run against a Supabase project
+
+1. `uv run python -m app.inspect_target`: shows the project ref, which tables exist, row counts and whether the data is protected. Read-only.
+2. Set `ALPHA_EXPECT_PROJECT=<ref>` in `alpha/.env` so a run aborts if the URL points somewhere else.
+3. `uv run python app/main.py --dry-run` (needs `INGEST_LIVE=1` for live data): fetches, scores and prints what would be inserted or updated per table and what the universe sync would add or remove. Nothing is written, no sectors are stored, the protection flag is not set and Google Sheets is not pushed.
+4. Run without `--dry-run` once the numbers look right.
+
 ### Failure policy
 
 - **No real data → the run fails** (non-zero exit). Built-in demo rows are used only with `ALLOW_SAMPLE_DATA=1` and are never written to Supabase or Google Sheets.

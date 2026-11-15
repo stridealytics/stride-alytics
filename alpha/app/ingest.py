@@ -31,11 +31,17 @@ def resolve_universe(fresh: list[str]) -> list[str]:
     try:
         from app.database.universe import active_tickers, sync_universe
 
+        from app.database.safety import dry_run
+
         plan = sync_universe(fresh)
-        print(f"Universe sync: {plan.summary()}")
+        print(
+            f"Universe sync{' (dry run, nothing written)' if dry_run() else ''}: {plan.summary()}"
+        )
         if plan.removal_skipped:
             print(f"[WARNING] Removals skipped: {plan.removal_skipped}")
         active = active_tickers()
+        if dry_run():  # nothing was written, so apply the plan to the list in memory
+            active = sorted((set(active) | set(plan.add)) - set(plan.remove))
         if active:
             return active
     except Exception as e:  # noqa: BLE001 - never block a run on the bookkeeping

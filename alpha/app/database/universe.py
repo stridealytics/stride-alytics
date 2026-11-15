@@ -132,8 +132,11 @@ def sync_universe(fresh: list[str], source: str = "universe_scanner", client=Non
     """Bring ``ticker_universe`` in line with ``fresh`` by writing only the difference."""
     client = client or _client()
     max_pct = float(os.getenv("UNIVERSE_MAX_REMOVE_PCT", DEFAULT_MAX_REMOVE_PCT))
-    plan = plan_sync(fetch_universe(client), fresh, max_pct)
-    if plan.changes:
+    stored = fetch_universe(client)
+    plan = plan_sync(stored, fresh, max_pct)
+    from .safety import dry_run
+
+    if plan.changes and not dry_run():
         apply_plan(plan, source, client)
     return plan
 

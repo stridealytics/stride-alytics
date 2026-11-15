@@ -15,6 +15,7 @@ Failure policy
 """
 
 import os
+import sys
 import time
 
 import pandas as pd
@@ -27,6 +28,7 @@ from app.screener.apply_filters import apply_daily_filters
 from app.screener.weekly_watchlist import weekly_watchlist, compute_strategy_for_all
 from app.screener.band_pipeline import compute_bands
 from app.database.insert_daily import sync_day
+from app.database.safety import dry_run
 from app.sheets.push_to_sheets import push_to_sheet
 
 # Warn when the CSV fallback is older than this many days (its values would be
@@ -131,6 +133,9 @@ def _after_load(df: pd.DataFrame) -> None:
     try:
         from app.database import safety, universe
 
+        if safety.dry_run():
+            print("[INFO] Dry run: sectors and the protection flag were not touched.")
+            return
         if "Sector" in df.columns:
             sectors = dict(zip(df["Ticker"].astype(str).str.upper(), df["Sector"]))
             filled = universe.fill_sectors({t: s for t, s in sectors.items() if isinstance(s, str)})
@@ -191,7 +196,9 @@ def run_system(allow_sample: bool | None = None) -> None:
     _after_load(df_bands)
 
     # 8. Push to Google Sheets (only if configured). Failures alert but don't fail the run.
-    if check.skip_sheets:
+    if dry_run():
+        print("Dry run: Google Sheets not pushed.")
+    elif check.skip_sheets:
         print("Google Sheets skipped (placeholder credentials).")
     elif not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):
         print("Google Sheets not configured (GOOGLE_SHEETS_SPREADSHEET_ID unset) — skipping.")
@@ -208,8 +215,15 @@ def run_system(allow_sample: bool | None = None) -> None:
             send_alert(f"Alpha: Google Sheets push failed: {e}")
 
 
-def main() -> int:
-    """CLI entry point: returns a non-zero exit code (and alerts) on failure."""
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: returns a non-zero exit code (and alerts) on failure.
+
+    ``--dry-run`` fetches and computes everything but writes nothing (no Supabase, no Sheets).
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    if "--dry-run" in argv:
+        os.environ["ALPHA_DRY_RUN"] = "1"
+        print("[INFO] DRY RUN: nothing will be written to Supabase or Google Sheets.")
     try:
         run_system()
     except Exception as e:  # noqa: BLE001 - top-level handler: report everything

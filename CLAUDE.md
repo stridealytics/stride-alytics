@@ -32,6 +32,7 @@ Python modules need Python 3.12 (backend, scheduler) or 3.11+ (alpha) and use uv
 - `streamlit run app/streamlit_app.py`: run from `alpha/` so `app.*` imports resolve
 - `uv run lint|format|typecheck|verify`: ruff and black (line length 100), strict mypy
 - `uv run pytest tests -q`: pipeline I/O tests (fake Supabase client, no network)
+- `uv run python -m app.inspect_target` prints which Supabase project alpha is pointed at (ref, table row counts, protection flag) and writes nothing. `uv run python app/main.py --dry-run` (or `ALPHA_DRY_RUN=1`) fetches and computes everything but writes nothing. `ALPHA_EXPECT_PROJECT=<project ref>` makes a run abort if `SUPABASE_URL` is a different project.
 - `app/preflight.py` runs first and lists every missing setting at once (Supabase URL/key, Sheets credentials); optional features are reported as skipped.
 - The pipeline fails (non-zero exit + Slack/Discord alert) when there is no real data or a Supabase write fails. Built-in sample rows are used only with `ALLOW_SAMPLE_DATA=1` and are never written.
 

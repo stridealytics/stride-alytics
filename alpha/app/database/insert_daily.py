@@ -221,8 +221,12 @@ def sync_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = Non
     exception is ``weekly_watchlist``, whose rows for tickers that dropped off today's list are
     removed one by one (never the whole day; if that would empty the day it is skipped).
 
-    All payloads are built before anything is written, and Supabase errors are raised.
+    All payloads are built before anything is written, and Supabase errors are raised. In a dry run
+    (``ALPHA_DRY_RUN=1``) the same report is computed from what is stored, but nothing is written.
     """
+    from .safety import dry_run
+
+    read_only = dry_run()
     day = day or today_str()
     payload = {
         "daily_metrics": _rows(df_bands, DAILY_METRICS_COLUMNS, day),
@@ -236,22 +240,24 @@ def sync_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = Non
     for table in DAILY_TABLES:
         existing = _fetch_day(client, table, day)
         inserts, updates = plan_table(existing, payload[table])
-        for i in range(0, len(inserts), CHUNK):
-            client.table(table).insert(inserts[i : i + CHUNK]).execute()
-        for ticker, changed in updates:
-            client.table(table).update(changed).eq("ticker", ticker).like(
-                "date", f"{day}%"
-            ).execute()
+        if not read_only:
+            for i in range(0, len(inserts), CHUNK):
+                client.table(table).insert(inserts[i : i + CHUNK]).execute()
+            for ticker, changed in updates:
+                client.table(table).update(changed).eq("ticker", ticker).like(
+                    "date", f"{day}%"
+                ).execute()
 
         stale = 0
         if table == "weekly_watchlist" and payload[table]:
             keep = {str(r["ticker"]).upper() for r in payload[table]}
             drop = sorted({str(r["ticker"]).upper() for r in existing} - keep)
             if drop and len(drop) < len({str(r["ticker"]).upper() for r in existing}):
-                for i in range(0, len(drop), CHUNK):
-                    client.table(table).delete().in_("ticker", drop[i : i + CHUNK]).like(
-                        "date", f"{day}%"
-                    ).execute()
+                if not read_only:
+                    for i in range(0, len(drop), CHUNK):
+                        client.table(table).delete().in_("ticker", drop[i : i + CHUNK]).like(
+                            "date", f"{day}%"
+                        ).execute()
                 stale = len(drop)
         report[table] = {
             "inserted": len(inserts),

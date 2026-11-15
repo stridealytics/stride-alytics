@@ -16,10 +16,21 @@ class FakeQuery:
         self.payload = None
         self.filters: list[tuple] = []
         self.lo, self.hi = 0, None
+        self.count_mode = False
+        self.sort: tuple | None = None
 
     # builders
-    def select(self, *_):
+    def select(self, *_, **kw):
         self.op = "select"
+        self.count_mode = bool(kw.get("count"))
+        return self
+
+    def order(self, col, desc=False):
+        self.sort = (col, desc)
+        return self
+
+    def limit(self, n):
+        self.lo, self.hi = 0, n - 1
         return self
 
     def insert(self, rows):
@@ -73,11 +84,18 @@ class FakeQuery:
     def execute(self):
         if self.c.fail_on == self.op:
             raise RuntimeError(f"simulated {self.op} failure")
+        if self.c.strict and self.t not in self.c.tables:
+            raise RuntimeError(f"relation {self.t} does not exist")
         rows = self.c.tables.setdefault(self.t, [])
         if self.op == "select":
             hits = [dict(r) for r in rows if self._match(r)]
+            if self.sort:
+                hits.sort(key=lambda r: str(r.get(self.sort[0])), reverse=self.sort[1])
             hi = len(hits) if self.hi is None else self.hi + 1
-            return _Resp(hits[self.lo : hi])
+            resp = _Resp(hits[self.lo : hi])
+            if self.count_mode:
+                resp.count = len(hits)
+            return resp
         if self.op == "insert":
             new = self.payload if isinstance(self.payload, list) else [self.payload]
             rows.extend(dict(r) for r in new)
@@ -97,10 +115,12 @@ class FakeQuery:
 class _Resp:
     def __init__(self, data):
         self.data = data
+        self.count = None
 
 
 class FakeSupabase:
-    def __init__(self, fail_on: str | None = None):
+    def __init__(self, fail_on: str | None = None, strict: bool = False):
+        self.strict = strict  # True: reading a table that was never created raises
         self.tables: dict[str, list[dict]] = {}
         self.log: list[tuple] = []
         self.fail_on = fail_on

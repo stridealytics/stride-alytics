@@ -61,6 +61,15 @@ def check_environment(
             if not env.get(name):
                 result.errors.append(f"{name} is not set (needed to write results to Supabase).")
 
+    expected = env.get("ALPHA_EXPECT_PROJECT")
+    if expected and env.get("SUPABASE_URL") and expected not in env["SUPABASE_URL"]:
+        result.errors.append(
+            f"SUPABASE_URL does not match ALPHA_EXPECT_PROJECT ({expected!r}): refusing to run "
+            "against a different Supabase project than the one you named."
+        )
+    if env.get("ALPHA_DRY_RUN") == "1":
+        result.notes.append("Dry run: nothing will be written.")
+
     if env.get("GOOGLE_SHEETS_SPREADSHEET_ID"):
         if have_service_file is None:
             have_service_file = os.path.exists("service_account.json") or os.path.exists(
