@@ -25,7 +25,6 @@ alpha/
 │   ├── config.py                   # Environment config
 │   ├── secrets_loader.py           # Required-key validator (not called by main)
 │   ├── ingest.py                   # Multi-source ingestion (not wired into main yet)
-│   ├── business_logic.py           # Unused duplicate of the scoring rules (see TODO)
 │   ├── supabase_schema.sql         # Supabase table definitions
 │   ├── utils/
 │   │   ├── load_data.py            # Load Supabase / raw_screener.csv

@@ -20,7 +20,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 7 | Clean up old duplicate rows in Supabase | P2 | you | Needs the database |
 | 8 | Protect the Streamlit dashboard | P2 | you | Needs hosting access |
 | 10 | Session renewal (refresh token) | P2 | me | Test it with item 5 |
-| 11 | `CORS_ORIGINS` on Render; Yahoo ticker source | P2 | you + me | Code fixes done |
+| 11 | `CORS_ORIGINS` on Render | P2 | you | Code fixes done (ticker source fixed) |
 | 17 | Close the doc-vs-code gaps | P2 | you + me | See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md) |
 | 18 | Alpha and backend table-name collisions | P2 | you | Decision needed |
 | 20 | Confirm the Phase 2 rule assumptions | P2 | you | Checklist below |
@@ -28,6 +28,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 23 | Confirm Phase 3 behaviour (alerts, P&L x100) | P2 | you | Checklist below |
 | 24 | Confirm Phase 4 behaviour (limits, matrix, EV) | P2 | you | Checklist below |
 | 22 | Band usage endpoint shape | P3 | you | Decision |
+| 26 | `alpha/.env.example` holds what looks like a real private key | P1 | you | Rotate the key if it was ever shared; replace the file with placeholders |
 | 12 to 16 | Spec mismatches, alpha robustness and lint, tests, leftovers, hygiene (incl. the unexplained file revert) | P3 | me + you | Partly done |
 
 ---
@@ -89,8 +90,9 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 ### 11. Backend hardening
 - **Fixed:** `/auth/refresh` now takes the refresh token in the request body (a URL can end up in logs); CORS no longer combines `*` with credentials (credentials only for explicit origins) and logs a warning when `*` is used outside development.
 - **Open, set on Render:** `CORS_ORIGINS` to your frontend URL (the default is still `*`).
-- **Open:** `market.py` uses Yahoo's v7 quote endpoint, which likely needs a crumb and so always returns the fallback values; the responses are labelled `source`, but switch the source or accept the label. Check the Dashboard ticker with the network on.
-- Done when: `CORS_ORIGINS` is set in production and the market-ticker source is fixed or accepted.
+- **Fixed:** `market.py` now reads quotes through yfinance (Yahoo's v7 endpoint returned 401); the fallback is still labelled `source`.
+- **Fixed:** `render.yaml` now uses `plan: free` and no longer sets the unused `APP_ENV`.
+- Done when: `CORS_ORIGINS` is set in production and the Dashboard ticker shows `live` on a deployed run.
 
 ### 17. Close the doc-vs-code gaps
 - See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md). The stale facts were fixed; what remains is documented-but-unbuilt functionality (push or email alerts, `/auth/profile`, screener search endpoints, rate limiting, caching, scheduler scripts, the `shared/` folder).
@@ -163,7 +165,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 ### 12. Spec and implementation mismatches
 - The older `/regime/{symbol}` endpoint (bull/bear/ranging from a 30-day return) still exists next to the new 0–100 score (`/regime/score`); decide whether to keep or remove it.
 - Alpha bands A–E are quality tiers by score; the docs define them as capital-allocation buckets with 30/25/20/15/10% caps.
-- `alpha/app/business_logic.py` is dead code that treats spread as a fraction (`< 0.08`) while the real screener uses percent (`< 8`). Delete it or make it the single implementation.
+- Done: the dead `alpha/app/business_logic.py` was deleted.
 - Done when: docs and code agree, or the docs are updated to match.
 
 ### 13. Alpha data robustness
@@ -184,7 +186,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 ### 15. Leftovers from the plan and mobile removal
 - `mobile/` still references `subscription_plan` (auth store, settings screen); deferred, but it will not match the API.
 - Doc bodies still contain optional paid examples (`render.yaml` with `plan: standard`, the ~$84 cost table, SendGrid scripts) under a scope banner.
-- `backend/render.yaml` uses `plan: starter` (a paid Render plan, about $7/month, no sleep). Decide: keep it, or switch to `free` (sleeps when idle). `APP_ENV` in that file is not used by the code (`ENVIRONMENT` is). `vercel.json` and the other workflows (`fetch-market-data`, `calculate-greeks`, `generate-weekly-picks`) are not yet reviewed for free-tier minute use.
+- Done: `backend/render.yaml` uses the free plan and no unused `APP_ENV`. `vercel.json` and the other workflows (`fetch-market-data`, `calculate-greeks`, `generate-weekly-picks`) are not yet reviewed for free-tier minute use.
 - Existing Supabase auth users may still carry a `subscription_plan` in their metadata (ignored, harmless).
 - Done when: configs match the free-tier defaults in `../BUSINESS/03-FINANCIAL-MODEL.md`.
 
@@ -193,3 +195,9 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - `.mcp.json` GitHub server fails to connect ("Incompatible auth server: does not support dynamic client registration").
 - Confirm `alpha/service_account.json` is git-ignored (it exists locally; only `service_account.example.json` should be tracked).
 - Done when: the MCP server connects or is removed, and the credential file is confirmed ignored.
+
+### 26. Possible real secret in `alpha/.env.example`
+- The local file `alpha/.env.example` (untracked; ignored by the `.env*` rule) contains a full-looking Google service-account JSON including a private key. It was never committed.
+- **You:** if the key is real, create a new key in Google Cloud and delete this one. Then replace the file with placeholders and add `!.env.example` to `.gitignore` so the template can be tracked.
+- **Me, after you confirm:** write the placeholder template and the `.gitignore` exception.
+- Done when: the template is tracked with placeholders only and the old key is revoked.

@@ -7,7 +7,7 @@ This module pulls data from:
 - Massive (optional)
 - yfinance (price, IV, HV, earnings)
 
-Then merges everything into a unified DataFrame ready for business_logic.py.
+Then merges everything into a unified DataFrame ready for the scoring step (screener/compute_option_score.py).
 
 Finally, it pushes raw daily metrics into Supabase.
 """
