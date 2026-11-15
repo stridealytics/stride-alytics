@@ -1,1 +1,1 @@
-# Option Trading System — StrideAlytics Alpha
+# Stock and Options Screening Pipeline — StrideAlytics Alpha

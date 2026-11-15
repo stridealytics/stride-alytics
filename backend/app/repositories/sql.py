@@ -27,7 +27,7 @@ from app.domain.thresholds import resolve as resolve_thresholds
 from app.services.portfolio import Portfolio, Trade, calculate_pnl
 
 
-class InvalidInput(ValueError):
+class InvalidInputError(ValueError):
     """The request is well-formed but not acceptable (endpoints map it to 422)."""
 
 
@@ -308,7 +308,9 @@ class Repo:
 
         field_name = sort.lstrip("-+")
         if field_name not in _TRADE_SORTS:
-            raise InvalidInput(f"cannot sort by {field_name!r}; allowed: {sorted(_TRADE_SORTS)}")
+            raise InvalidInputError(
+                f"cannot sort by {field_name!r}; allowed: {sorted(_TRADE_SORTS)}"
+            )
         column = getattr(m.Trade, field_name)
         order = column.desc() if sort.startswith("-") else column.asc()
 
@@ -328,7 +330,7 @@ class Repo:
             raise ValueError("trade is already closed")
         entry = _as_date(row.entry_date)
         if entry is not None and exit_date < entry:
-            raise InvalidInput("exit date is before the entry date")
+            raise InvalidInputError("exit date is before the entry date")
         before = trade_snapshot(_to_trade(row))
         row.exit_price = exit_price
         row.exit_date = _as_dt(exit_date)
@@ -627,7 +629,7 @@ class Repo:
     async def update_settings(self, user_id: UUID, changes: dict[str, Any]) -> dict[str, Any]:
         unknown = set(changes) - set(SETTINGS_FIELDS)
         if unknown:
-            raise InvalidInput(f"unknown settings: {sorted(unknown)}")
+            raise InvalidInputError(f"unknown settings: {sorted(unknown)}")
         row = await self._settings_row(user_id)
         before = {k: _jsonable(getattr(row, k)) for k in changes}
         for key, value in changes.items():

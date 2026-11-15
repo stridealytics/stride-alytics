@@ -1,9 +1,11 @@
 """
-Alpha Option Trading System — Config Loader
+Alpha Stock and Options Screening Pipeline — Config Loader
 Loads environment variables and exposes them as a typed config object.
 """
 
+import os
 from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 # Load .env file
@@ -34,14 +36,14 @@ class Config:
 
 
 config = Config(
-    SUPABASE_URL=__import__("os").getenv("SUPABASE_URL"),
-    SUPABASE_KEY=__import__("os").getenv("SUPABASE_KEY"),
-    POLYGON_API_KEY=__import__("os").getenv("POLYGON_API_KEY"),
-    FMP_API_KEY=__import__("os").getenv("FMP_API_KEY"),
-    MASSIVE_API_KEY=__import__("os").getenv("MASSIVE_API_KEY"),
-    GOOGLE_SERVICE_ACCOUNT_JSON=__import__("os").getenv("GOOGLE_SERVICE_ACCOUNT_JSON"),
-    GOOGLE_SHEETS_SPREADSHEET_ID=__import__("os").getenv("GOOGLE_SHEETS_SPREADSHEET_ID"),
-    SLACK_WEBHOOK_URL=__import__("os").getenv("SLACK_WEBHOOK_URL"),
-    DISCORD_WEBHOOK_URL=__import__("os").getenv("DISCORD_WEBHOOK_URL"),
-    API_AUTH_TOKEN=__import__("os").getenv("API_AUTH_TOKEN"),
+    SUPABASE_URL=os.getenv("SUPABASE_URL"),
+    SUPABASE_KEY=os.getenv("SUPABASE_KEY"),
+    POLYGON_API_KEY=os.getenv("POLYGON_API_KEY"),
+    FMP_API_KEY=os.getenv("FMP_API_KEY"),
+    MASSIVE_API_KEY=os.getenv("MASSIVE_API_KEY"),
+    GOOGLE_SERVICE_ACCOUNT_JSON=os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"),
+    GOOGLE_SHEETS_SPREADSHEET_ID=os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"),
+    SLACK_WEBHOOK_URL=os.getenv("SLACK_WEBHOOK_URL"),
+    DISCORD_WEBHOOK_URL=os.getenv("DISCORD_WEBHOOK_URL"),
+    API_AUTH_TOKEN=os.getenv("API_AUTH_TOKEN"),
 )

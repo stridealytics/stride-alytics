@@ -1,7 +1,7 @@
 [project]
 name = "stride-alytics-alpha"
 version = "0.1.0"
-description = "StrideAlytics Alpha — Option Trading System pipeline"
+description = "StrideAlytics Alpha — Stock and Options Screening Pipeline"
 
 requires-python = ">=3.11,<3.13"
 

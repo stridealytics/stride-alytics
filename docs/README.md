@@ -1,10 +1,12 @@
 # StrideAlytics Documentation Hub
 
+**StrideAlytics: Stock and Options Trading System** — rules-based analysis and decision support.
+
 > **CURRENT SCOPE (2026-11-14): personal use only.**
 > The **PRO plan, billing and multi-user (RIA)** features are **removed**. The **mobile app** is **deferred** until further confirmation.
 > **Free tiers are the default.** Paid APIs or services (for example a market-data provider) may be added later if needed, as a deliberate choice.
 
-Welcome to the **StrideAlytics Documentation** – your comprehensive guide to the multi-platform trading analytics platform. This folder contains all business requirements, technical specifications, architecture documentation, and implementation guidelines.
+Welcome to the **StrideAlytics Documentation** – your comprehensive guide to the StrideAlytics Stock and Options Trading System. This folder contains all business requirements, technical specifications, architecture documentation, and implementation guidelines.
 
 ---
 

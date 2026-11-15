@@ -27,7 +27,7 @@ def dry_run() -> bool:
     return os.getenv(DRY_RUN_ENV) == "1"
 
 
-class DestructiveOperationBlocked(RuntimeError):
+class DestructiveOperationBlockedError(RuntimeError):
     """A bulk delete was refused because the data has been loaded and is now protected."""
 
 
@@ -54,18 +54,18 @@ def mark_loaded(client=None) -> bool:
 
 
 def require_unlocked(action: str, client=None) -> None:
-    """Raise ``DestructiveOperationBlocked`` unless it is safe to run ``action``."""
+    """Raise ``DestructiveOperationBlockedError`` unless it is safe to run ``action``."""
     if os.getenv(UNLOCK_ENV) == UNLOCK_VALUE:
         print(f"[WARNING] {UNLOCK_ENV} is set: allowing destructive action '{action}'.")
         return
     try:
         locked = is_loaded(client)
     except Exception as exc:  # noqa: BLE001 - cannot verify, so do not allow
-        raise DestructiveOperationBlocked(
+        raise DestructiveOperationBlockedError(
             f"Refusing '{action}': could not check whether the data is protected ({exc})."
         ) from exc
     if locked:
-        raise DestructiveOperationBlocked(
+        raise DestructiveOperationBlockedError(
             f"Refusing '{action}': the data has been loaded and is protected. The daily run only "
             f"adds, updates and soft-removes. To override on purpose, set {UNLOCK_ENV}={UNLOCK_VALUE}."
         )

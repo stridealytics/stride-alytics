@@ -23,10 +23,10 @@ DEFAULT_TICKERS: Final[tuple[str, ...]] = ("SPY", "QQQ", "DIA", "VIX")
 # prices: responses that use them are labelled ``source="fallback"`` so the UI
 # can say so.
 MOCK_TICKERS: Final[dict[str, TickerData]] = {
-    "SPY": TickerData(symbol="SPY", price="548.32", change="-1.23", changePercent="-0.22"),
-    "QQQ": TickerData(symbol="QQQ", price="478.92", change="2.15", changePercent="+0.45"),
-    "DIA": TickerData(symbol="DIA", price="395.61", change="0.89", changePercent="+0.22"),
-    "VIX": TickerData(symbol="VIX", price="15.42", change="-0.58", changePercent="-3.63"),
+    "SPY": TickerData(symbol="SPY", price="548.32", change="-1.23", change_percent="-0.22"),
+    "QQQ": TickerData(symbol="QQQ", price="478.92", change="2.15", change_percent="+0.45"),
+    "DIA": TickerData(symbol="DIA", price="395.61", change="0.89", change_percent="+0.22"),
+    "VIX": TickerData(symbol="VIX", price="15.42", change="-0.58", change_percent="-3.63"),
 }
 
 TickerSource = Literal["live", "fallback"]
@@ -60,7 +60,7 @@ def _fetch_quotes_sync(symbols: tuple[str, ...]) -> dict[str, TickerData]:
             symbol=sym,
             price=str(round(last, 2)),
             change=str(round(last - prev, 2)),
-            changePercent=str(round((last / prev - 1) * 100, 2)),
+            change_percent=str(round((last / prev - 1) * 100, 2)),
         )
     return result
 

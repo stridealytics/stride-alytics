@@ -1,4 +1,4 @@
-# Alpha — Option Trading System
+# Alpha — Stock and Options Screening Pipeline
 
 > **Module:** `alpha/` at the project root  
 > **Package:** `stride-alytics-alpha`  
@@ -214,7 +214,7 @@ Every `date` column is TEXT holding `YYYY-MM-DD`. Run `app/supabase_schema.sql` 
 A scheduled workflow runs Mon–Fri at 12:30 UTC (≈ 8:30 AM ET):
 
 ```yaml
-# .github/workflows/daily_run.yml
+# .github/workflows/alpha-daily-run.yml
 on:
   schedule:
     - cron: "30 12 * * 1-5"   # UTC: 8:30 AM EDT / 7:30 AM EST

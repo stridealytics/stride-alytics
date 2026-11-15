@@ -63,7 +63,7 @@ def clear_all_tables() -> None:
     Clear all data from the daily_metrics, option_scores, bands, and weekly_watchlist tables.
 
     Only for resetting corrupted data in a brand-new database. Once the initial load is complete
-    the data is protected and this raises ``DestructiveOperationBlocked`` (see ``safety.py``).
+    the data is protected and this raises ``DestructiveOperationBlockedError`` (see ``safety.py``).
     """
     from .safety import require_unlocked
 

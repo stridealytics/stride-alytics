@@ -14,7 +14,7 @@ export interface RawTicker {
   symbol: string;
   price: string;
   change: string;
-  changePercent: string;
+  change_percent: string;
 }
 
 /** Exact wire envelope: `{ success: true, data: { SYM: RawTicker } }`. */

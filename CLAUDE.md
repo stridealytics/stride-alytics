@@ -54,7 +54,7 @@ Setup: `scripts/setup-dev.sh` or `scripts/setup-dev.ps1` installs dependencies a
 
 - `.husky/pre-commit` runs checks only for the side that changed (`frontend/`, `backend/` or `alpha/`). The backend and alpha black steps auto-fix files and then abort the commit, so re-stage and commit again. Alpha runs ruff, black and its pytest suite (no mypy: its pandas stubs are missing). CI runs the same ruff and black steps for alpha.
 - `.github/workflows/ci.yml` runs on `main` and `develop`. Some steps use `|| echo` and do not block, so a green CI does not prove the tests pass.
-- Alpha's Dockerfile and `daily_run.yml` use Python 3.11, while its linters target py312.
+- Alpha's Dockerfile and `alpha-daily-run.yml` use Python 3.11, while its linters target py312.
 
 ## Architecture
 

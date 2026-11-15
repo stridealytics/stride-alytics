@@ -168,11 +168,11 @@ export function WatchlistPage() {
                     align: "right",
                     render: (r) => {
                       if (!r.quote) return "—";
-                      const pct = parseFloat(r.quote.changePercent);
+                      const pct = parseFloat(r.quote.change_percent);
                       return (
                         <span className={pct >= 0 ? "text-green-700" : "text-red-700"}>
                           {pct >= 0 ? "+" : ""}
-                          {r.quote.changePercent}%
+                          {r.quote.change_percent}%
                         </span>
                       );
                     },

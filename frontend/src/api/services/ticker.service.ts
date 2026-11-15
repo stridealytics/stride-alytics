@@ -45,7 +45,7 @@ export const tickerService = {
             symbol,
             price: raw.price,
             change: raw.change,
-            changePercent: raw.changePercent,
+            change_percent: raw.change_percent,
             timestamp: new Date(),
           };
           results.push(ticker);

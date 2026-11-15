@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.deps import Ctx, get_ctx
 from app.domain import thresholds as th
 from app.api.v1.schemas.settings import SettingsUpdate
-from app.repositories.sql import InvalidInput
+from app.repositories.sql import InvalidInputError
 
 router = APIRouter()
 
@@ -41,7 +41,7 @@ async def update_settings(payload: SettingsUpdate, ctx: Ctx = Depends(get_ctx)) 
     changes = payload.model_dump(exclude_unset=True, exclude_none=True)
     try:
         data = await ctx.repo.update_settings(ctx.user_id, changes)
-    except InvalidInput as exc:
+    except InvalidInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     warnings = th.loosened(data["thresholds"]) if "thresholds" in changes else []
     return {"success": True, "data": data, "warnings": warnings}

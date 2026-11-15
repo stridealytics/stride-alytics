@@ -34,7 +34,7 @@ The **Scheduler Layer** automates recurring tasks like data collection, analysis
 
 ```
 .github/workflows/
-├── daily_run.yml               # Alpha pipeline, Mon–Fri 12:30 UTC
+├── alpha-daily-run.yml               # Alpha pipeline, Mon–Fri 12:30 UTC
 ├── fetch-market-data.yml       # Market data collection, Mon–Fri 20:00 UTC
 ├── calculate-greeks.yml        # Greeks calculation, Mon–Fri 21:00 UTC
 ├── generate-weekly-picks.yml   # Weekly picks, Sunday 23:00 UTC

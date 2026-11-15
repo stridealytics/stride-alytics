@@ -34,7 +34,7 @@ describe("WatchlistPage", () => {
     vi.mocked(marketApi.tickers).mockResolvedValue({
       success: true,
       source: "live",
-      data: { AAPL: { symbol: "AAPL", price: "190.10", change: "-1.2", changePercent: "-0.63" } },
+      data: { AAPL: { symbol: "AAPL", price: "190.10", change: "-1.2", change_percent: "-0.63" } },
     });
   });
 

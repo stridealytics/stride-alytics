@@ -10,7 +10,7 @@
 
 ### Platform Overview
 
-StrideAlytics is a **free-tier options trading analytics platform** with multi-platform support (web, mobile, API) designed for sophisticated options traders and analysts.
+StrideAlytics is a **free-tier stock and options trading system (analysis and decision support)** with multi-platform support (web, mobile, API) designed for sophisticated options traders and analysts.
 
 **Core Value Proposition:**
 - Real-time options screener with advanced filters (strike, expiry, Greeks, IV)

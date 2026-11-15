@@ -1,5 +1,5 @@
 # Alpha_Business_Logic.md
-### Complete Business Logic Specification for the Alpha Option Trading System  
+### Complete Business Logic Specification for the Alpha Stock and Options Screening Pipeline  
 ### Includes Mermaid Architecture & Logic Diagrams
 
 ---
@@ -27,7 +27,7 @@ flowchart TD
 
 # 1. Overview
 
-Alpha is a fully automated, rules‑driven option trading system that:
+Alpha is a fully automated, rules‑driven stock and options screening pipeline that:
 
 - Scores tickers  
 - Classifies risk  
@@ -296,7 +296,7 @@ flowchart LR
 
 # Final Summary
 
-Alpha is a rules‑driven, automated option trading system that:
+Alpha is a rules‑driven, automated stock and options screening pipeline that:
 
 - Scores tickers  
 - Classifies risk  

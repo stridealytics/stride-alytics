@@ -1,5 +1,5 @@
 """
-Alpha Option Trading System — Supabase Client
+Alpha Stock and Options Screening Pipeline — Supabase Client
 
 This module initializes a Supabase client using:
 - SUPABASE_URL

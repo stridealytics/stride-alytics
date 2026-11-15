@@ -1,5 +1,5 @@
 """
-Dynamic Ticker Universe Loader for Alpha Option Trading System.
+Dynamic Ticker Universe Loader for the Alpha Stock and Options Screening Pipeline.
 
 Supports multiple sources:
 - S&P 500 constituents (Wikipedia scraping)

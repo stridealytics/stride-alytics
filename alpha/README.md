@@ -1,4 +1,4 @@
-# StrideAlytics Alpha — Option Trading System
+# StrideAlytics Alpha — Stock and Options Screening Pipeline
 
 Daily option screening pipeline: loads raw screener data → scores options (0–9) → assigns bands (A–E) → applies daily filters → generates weekly watchlist → inserts into Supabase → pushes to Google Sheets.
 

@@ -1,5 +1,5 @@
 """
-Alpha Option Trading System — free data ingestion.
+Alpha Stock and Options Screening Pipeline — free data ingestion.
 
 Fetches today's screener metrics from yfinance (no API key) through
 ``data_sources/free_metrics.py`` and returns them as a DataFrame in the screener's column names.

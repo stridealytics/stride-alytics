@@ -1,5 +1,5 @@
 """
-Alpha — StrideAlytics Option Trading System Pipeline.
+Alpha — StrideAlytics Stock and Options Screening Pipeline.
 
 Orchestrates: load data (DB or CSV) → score options → compute bands → apply filters →
 generate watchlist → insert into Supabase → push to Google Sheets.

@@ -1,5 +1,5 @@
 """
-Streamlit dashboard for the Option Trading System.
+Streamlit dashboard for the Stock and Options Screening Pipeline.
 
 Displays daily metrics, option scores, volatility data, and trades
 from Supabase (real scanned data).
@@ -186,7 +186,7 @@ st.markdown(
 )
 
 st.set_page_config(
-    page_title="Option Trading System", layout="wide", page_icon="assets/icon/favicon.ico"
+    page_title="Stock and Options Screening", layout="wide", page_icon="assets/icon/favicon.ico"
 )
 
 

@@ -145,12 +145,12 @@ def test_after_the_initial_load_bulk_deletes_are_refused(monkeypatch) -> None:
     db.tables["daily_metrics"] = [{"date": "2026-12-01", "ticker": "AAPL"}]
     assert safety.mark_loaded(db) is True and safety.mark_loaded(db) is False
     monkeypatch.setattr(insert_daily, "get_supabase_client", lambda: db)
-    with pytest.raises(safety.DestructiveOperationBlocked):
+    with pytest.raises(safety.DestructiveOperationBlockedError):
         insert_daily.clear_all_tables()
     monkeypatch.setattr("app.database.supabase_client.get_supabase_client", lambda: db)
     from app.database import supabase_client
 
-    with pytest.raises(safety.DestructiveOperationBlocked):
+    with pytest.raises(safety.DestructiveOperationBlockedError):
         supabase_client.delete_rows("daily_metrics", "ticker", "AAPL")
     assert len(db.tables["daily_metrics"]) == 1 and db.ops("delete") == []
 
@@ -160,7 +160,7 @@ def test_if_the_flag_cannot_be_read_deletes_are_blocked(monkeypatch) -> None:
         def table(self, name):
             raise RuntimeError("db down")
 
-    with pytest.raises(safety.DestructiveOperationBlocked, match="could not check"):
+    with pytest.raises(safety.DestructiveOperationBlockedError, match="could not check"):
         safety.require_unlocked("clear", Broken())
 
 

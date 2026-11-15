@@ -136,7 +136,7 @@ def test_tickers_are_live_and_skip_symbols_without_a_price(
 ) -> None:
     from app.api.v1.schemas.market import TickerData
 
-    live = {"SPY": TickerData(symbol="SPY", price="754.37", change="-5.33", changePercent="-0.7")}
+    live = {"SPY": TickerData(symbol="SPY", price="754.37", change="-5.33", change_percent="-0.7")}
     monkeypatch.setattr(market, "_fetch_quotes_sync", lambda symbols: live)
     body = client.get("/api/v1/market/tickers").json()
     assert body["source"] == "live" and list(body["data"]) == ["SPY"]

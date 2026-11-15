@@ -61,7 +61,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - Done when: the smoke test passes, and a trade survives a backend restart on the deployed API (Validation V2, V13).
 
 ### 4. Verify the daily workflow on GitHub
-- `daily_run.yml` was fixed (`uv run`, secrets as env vars, failure alert) but never run from here.
+- `alpha-daily-run.yml` was fixed (`uv run`, secrets as env vars, failure alert) but never run from here.
 - Add repo secrets: `SUPABASE_URL`, `SUPABASE_KEY`; optional `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`, `SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`.
 - Done when: a manual "Run workflow" succeeds and a forced failure produces an alert.
 
@@ -77,7 +77,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - **Fixed in `ingest.py`:** `hv_30d` is now computed from 3 months of price history (30-day realised volatility); NaN/inf become null before the push; Supabase connects only when pushing; the universe default is 100 tickers (`INGEST_MAX_TICKERS`); an empty yfinance result no longer crashes. Tests are in `alpha/tests/test_ingest.py`.
 - **Fixed (free version):** the missing Polygon/FMP fetchers are replaced by `alpha/app/data_sources/free_metrics.py`, which builds every screener column from yfinance with no key (option volume, open interest, spread %, ATM IV from the expiry nearest 30 days, ATR, trend, earnings, short interest, sector, market cap). `IV Rank` is a proxy (1-year percentile of 30-day realised vol); `Quality Score` is left empty (shown in `Data Gaps`). `INGEST_LIVE=1` makes `main.py` use it as the first data source; if it fails the run falls back to Supabase, CSV, then stops. Checked live on SOFI.
 - **You (small):** run the new `alter table ... add column if not exists market_cap, beta, float_shares` lines from `alpha/app/supabase_schema.sql` in Supabase. The pipeline writes those columns and the original table did not have them.
-- **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. **Decided: stay on free yfinance data**, and `daily_run.yml` now sets `INGEST_LIVE=1`. Run the workflow once by hand and read the log (V18, V21) before trusting the schedule. A paid source can be added later (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
+- **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. **Decided: stay on free yfinance data**, and `alpha-daily-run.yml` now sets `INGEST_LIVE=1`. Run the workflow once by hand and read the log (V18, V21) before trusting the schedule. A paid source can be added later (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
 - Done when: the scheduled run produces today's rows without a manually updated CSV.
 
 ### 7. Clean up old duplicate rows in Supabase

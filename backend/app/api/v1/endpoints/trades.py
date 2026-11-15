@@ -13,7 +13,7 @@ from app.api.deps import Ctx, get_ctx, to_csv
 from app.domain.ev import entry_ev
 from app.api.v1.endpoints.gate import is_backdated
 from app.api.v1.schemas.portfolio import TradeClose, TradeCreate, TradeNotes, TradeOut, TradePage
-from app.repositories.sql import InvalidInput
+from app.repositories.sql import InvalidInputError
 from app.services.portfolio import Trade, trade_breakdown
 from app.services.position_data import PositionDataProvider, get_position_data_provider
 from app.services.returns_data import ReturnsProvider, get_returns_provider
@@ -72,7 +72,7 @@ async def list_all_trades(
             limit=limit,
             offset=offset,
         )
-    except InvalidInput as exc:
+    except InvalidInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return TradePage(
         data=[TradeOut(**row) for row in trade_breakdown(trades)],
@@ -254,7 +254,7 @@ async def close_trade(trade_id: UUID, payload: TradeClose, ctx: Ctx = Depends(ge
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Trade not found") from exc
-    except InvalidInput as exc:
+    except InvalidInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ValueError as exc:  # already closed
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

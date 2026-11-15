@@ -18,7 +18,7 @@ class TickerData(BaseModel):
         ..., description="Last regular‑market price, string‑formatted for client convenience"
     )
     change: str = Field(..., description="Regular‑market price change, string‑formatted")
-    changePercent: str = Field(..., description="Regular‑market percent change, string‑formatted")
+    change_percent: str = Field(..., description="Regular‑market percent change, string‑formatted")
 
 
 class TickerEnvelope(BaseModel):

@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app import database
 from app import models as m
-from app.repositories.sql import InvalidInput, Repo
+from app.repositories.sql import InvalidInputError, Repo
 from app.services.portfolio import Trade
 
 
@@ -137,7 +137,7 @@ async def test_list_trades_filters_sorting_and_pagination(repo: Repo) -> None:
     page, total = await repo.list_trades(uid, sort="symbol", limit=2, offset=2)
     assert total == 5 and [t.symbol for t in page] == ["MSFT", "NVDA"]
 
-    with pytest.raises(InvalidInput):
+    with pytest.raises(InvalidInputError):
         await repo.list_trades(uid, sort="entry_price")  # not an allowed sort field
 
 
@@ -148,7 +148,7 @@ async def test_close_trade_rules(repo: Repo) -> None:
 
     with pytest.raises(KeyError):
         await repo.close_trade(other, t.id, 3.0, date(2026, 1, 9))
-    with pytest.raises(InvalidInput):
+    with pytest.raises(InvalidInputError):
         await repo.close_trade(uid, t.id, 3.0, date(2026, 1, 1))  # before entry date
 
     closed = await repo.close_trade(uid, t.id, 3.0, date(2026, 1, 9))
@@ -286,7 +286,7 @@ async def test_settings_defaults_update_and_audit(repo: Repo) -> None:
     rows, _ = await repo.list_audit(uid, action="settings.update")
     assert rows[0]["before"]["account_size"] == 100000 and rows[0]["after"]["account_size"] == 75000
 
-    with pytest.raises(InvalidInput):
+    with pytest.raises(InvalidInputError):
         await repo.update_settings(uid, {"not_a_setting": 1})
 
 

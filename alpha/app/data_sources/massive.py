@@ -1,5 +1,5 @@
 """
-Alpha Option Trading System — Massive API Data Source
+Alpha Stock and Options Screening Pipeline — Massive API Data Source
 
 This module fetches stock/option data from Massive's Stock Market API
 and returns a pandas DataFrame suitable for the Alpha business logic.
