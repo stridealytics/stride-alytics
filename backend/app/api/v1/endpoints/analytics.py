@@ -15,15 +15,16 @@ router = APIRouter()
 
 @router.get("/ev-calibration")
 async def ev_calibration(ctx: Ctx = Depends(get_ctx)) -> dict[str, Any]:
-    """Win rate and average P&L of closed trades by layer.
+    """Win rate, average P&L and average entry EV of closed trades by layer.
 
-    Entry EV is not stored on a trade yet, so ``avg_expected`` is empty until it is; the realised
-    figures are real.
+    Only trades opened with a score (short options with credit, risk and a live delta) carry an
+    entry EV; ``with_expected`` says how many per group.
     """
     closed = await ctx.repo.closed_trades(ctx.user_id)
-    rows = [{"layer": t.layer, "pnl": calculate_pnl(t), "expected": None} for t in closed]
+    rows = [{"layer": t.layer, "pnl": calculate_pnl(t), "expected": t.entry_ev} for t in closed]
     data = calibration(rows)
     data["note"] = (
-        "Expected value at entry is not recorded on trades yet, so only realised results are shown."
+        "Expected value is recorded at entry for short options with a credit, a risk amount and a "
+        "live delta; other trades show realised results only."
     )
     return {"success": True, "data": data}

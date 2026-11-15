@@ -11,6 +11,7 @@ from app.api.deps import Ctx, get_ctx
 from app.api.v1.schemas.trading import GateCheckRequest
 from app.domain.allocation import growth_locked, layer_split
 from app.services.position_data import PositionDataProvider, get_position_data_provider
+from app.services.returns_data import ReturnsProvider, get_returns_provider
 from app.services.symbol_data import SymbolDataProvider, get_symbol_data_provider
 from app.services.trading import entry_gate, load_account, master_gate
 from app.utils.validators import normalize_symbol
@@ -56,6 +57,7 @@ async def check_entry(
     ctx: Ctx = Depends(get_ctx),
     provider: SymbolDataProvider = Depends(get_symbol_data_provider),
     positions: PositionDataProvider = Depends(get_position_data_provider),
+    returns: ReturnsProvider = Depends(get_returns_provider),
 ) -> dict[str, Any]:
     """Dry run of the full entry gate for one candidate trade. Does not write to the logs."""
     entry_date = payload.entry_date or date.today()
@@ -82,6 +84,7 @@ async def check_entry(
         layer=payload.layer,
         strike=payload.strike,
         expiry=payload.expiry,
+        returns=returns,
     )
     return {
         "success": True,

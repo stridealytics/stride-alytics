@@ -97,6 +97,7 @@ def _to_trade(row: m.Trade) -> Trade:
         band=row.band,
         risk_amount=_num(row.risk_amount),
         credit=_num(row.credit),
+        entry_ev=_num(row.entry_ev),
     )
 
 
@@ -128,6 +129,7 @@ def trade_snapshot(t: Trade) -> dict[str, Any]:
         "band": t.band,
         "risk_amount": t.risk_amount,
         "credit": t.credit,
+        "entry_ev": t.entry_ev,
         "notes": t.notes,
     }
 
@@ -263,6 +265,7 @@ class Repo:
             band=trade.band,
             risk_amount=trade.risk_amount,
             credit=trade.credit,
+            entry_ev=trade.entry_ev,
         )
         self.s.add(row)
         await self.s.flush()

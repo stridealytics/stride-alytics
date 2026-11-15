@@ -29,6 +29,7 @@ export interface Thresholds {
   open_interest_min: number;
   market_cap_min: number;
   earnings_window_days: number;
+  correlation_max: number;
   max_capital_at_risk_pct: number;
   max_sector_risk_pct: number;
   max_net_delta_pct: number;

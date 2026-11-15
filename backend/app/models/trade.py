@@ -46,6 +46,8 @@ class Trade(Base):
     band: Mapped[str | None] = mapped_column(String(1), nullable=True)  # 'A'..'E'
     risk_amount: Mapped[float | None] = mapped_column(DECIMAL(12, 2), nullable=True)
     credit: Mapped[float | None] = mapped_column(DECIMAL(10, 4), nullable=True)
+    # --- Migration 012: expected value at entry, for the EV calibration report ---
+    entry_ev: Mapped[float | None] = mapped_column(DECIMAL(12, 2), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), default=utcnow, server_default=text("now()"), nullable=False

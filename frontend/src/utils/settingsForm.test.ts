@@ -23,6 +23,7 @@ const settings: UserSettings = {
     open_interest_min: 500,
     market_cap_min: 2_000_000_000,
     earnings_window_days: 14,
+    correlation_max: 0.85,
     max_capital_at_risk_pct: 50,
     max_sector_risk_pct: 25,
     max_net_delta_pct: 100,

@@ -10,11 +10,13 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import Ctx
 from app.domain import gate as g
+from app.domain.correlation import correlations_with_held
 from app.domain.regime_score import RegimeScore
 from app.domain.thresholds import DEFAULTS, Thresholds, resolve
 from app.services import regime_service
 from app.services.position_data import PositionDataProvider
 from app.services.positions import assignment_alarm_count, evaluate_open_positions
+from app.services.returns_data import ReturnsProvider
 from app.services.symbol_data import SymbolDataProvider
 
 
@@ -76,8 +78,9 @@ async def entry_gate(
     layer: str | None,
     strike: float | None,
     expiry: date | None,
+    returns: ReturnsProvider,
 ) -> g.GateResult:
-    """Full gate for a new entry (master + symbol + layer lock)."""
+    """Full gate for a new entry (master + symbol + layer lock + correlation)."""
     option_type = trade_type if trade_type in ("call", "put") else None
     data = await run_in_threadpool(
         provider,
@@ -89,6 +92,7 @@ async def entry_gate(
     )
     flags = await ctx.repo.get_symbol_flags(ctx.user_id, [symbol])
     news_flag = bool(flags.get(symbol.upper(), {}).get("news_flag", False))
+    correlations = await _correlations(ctx, returns, symbol.upper())
     return g.evaluate_entry(
         regime=account.regime,
         equity=account.equity,
@@ -101,7 +105,19 @@ async def entry_gate(
         assignment_alarms=account.assignment_alarms,
         capital_at_risk=account.capital_at_risk,
         limits=account.limits,
+        correlations=correlations,
     )
+
+
+async def _correlations(
+    ctx: Ctx, returns: ReturnsProvider, candidate: str
+) -> dict[str, float | None]:
+    """Correlation of the candidate with each distinct open position (BR-013)."""
+    held = sorted({t.symbol.upper() for t in await ctx.repo.open_trades(ctx.user_id)} - {candidate})
+    if not held:
+        return {}
+    series = {s: await run_in_threadpool(returns, s) for s in [candidate, *held]}
+    return correlations_with_held(candidate, series, held)
 
 
 async def log_gate_decision(

@@ -40,6 +40,13 @@ export const THRESHOLD_FIELDS: ThresholdField[] = [
     hint: "Blocks entries this close to earnings (BR-020).",
   },
   {
+    key: "correlation_max",
+    label: "Highest correlation with a held position",
+    unit: "0 to 1",
+    group: "Do-Not-Trade gate",
+    hint: "Blocks a trade that moves too closely with an open position (BR-013).",
+  },
+  {
     key: "max_capital_at_risk_pct",
     label: "Capital at risk limit",
     unit: "% of equity",

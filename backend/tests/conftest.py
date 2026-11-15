@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import random
 import sys
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from app.domain.gate import SymbolData  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services import regime_service  # noqa: E402
 from app.services.position_data import get_position_data_provider  # noqa: E402
+from app.services.returns_data import get_returns_provider  # noqa: E402
 from app.services.sector_data import get_sector_provider  # noqa: E402
 from app.services.symbol_data import get_symbol_data_provider  # noqa: E402
 
@@ -216,3 +218,29 @@ def position_data():
     app.dependency_overrides[get_position_data_provider] = lambda: fake
     yield fake
     app.dependency_overrides.pop(get_position_data_provider, None)
+
+
+class FakeReturns:
+    """Stands in for daily-return histories. By default every symbol gets its own independent
+    random series (so symbols are uncorrelated). Set ``by_symbol[symbol]`` to a list, or put a
+    symbol in ``missing`` to simulate a failed fetch."""
+
+    def __init__(self) -> None:
+        self.by_symbol: dict[str, list[float]] = {}
+        self.missing: set[str] = set()
+
+    def __call__(self, symbol: str) -> list[float] | None:
+        if symbol in self.missing:
+            return None
+        if symbol in self.by_symbol:
+            return self.by_symbol[symbol]
+        rng = random.Random(symbol)
+        return [rng.gauss(0, 0.01) for _ in range(100)]
+
+
+@pytest.fixture(autouse=True)
+def returns_data():
+    fake = FakeReturns()
+    app.dependency_overrides[get_returns_provider] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_returns_provider, None)

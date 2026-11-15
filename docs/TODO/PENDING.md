@@ -148,8 +148,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
   - [ ] The strategy suitability table (`backend/app/domain/strategy_matrix.py`) matches how you want to trade each strategy per regime.
   - [ ] EV uses a pick's confidence as the probability of profit; confirm that the weekly job's confidence means that.
 - **Margin % is not real margin.** It is capital at risk / equity. A broker feed would be needed for true margin.
-- **Correlation (BR-013) is still not evaluated** in the gate; it needs return histories per symbol and a threshold you choose. Planned.
-- **EV at entry is not stored on trades**, so the calibration report (`/analytics/ev-calibration`) shows realised results by layer only. To compare EV with outcomes, store the entry EV on each trade first.
+- **Check correlation (BR-013) and entry EV (migration 012) on real data.** The gate now blocks a trade whose daily returns are more than 0.85 correlated with an open position (a Settings threshold; missing history blocks, fail-safe). Entry EV is stored on new short options that have a credit, risk amount and live delta; older trades have none, so the calibration report fills in slowly. See VALIDATION V20.
 - **Strategy cells link to the Screener**, not to a strategy detail page (FR-1140 / BR-093). Build the page or accept the link.
 - **Sectors and chains come from yfinance** (unofficial, may be rate limited or return nothing after hours); both labels say when data is missing or synthetic. Check a few symbols.
 - **Bundle size:** the production build is one JS file over 500 kB (recharts). Code-split the chart pages with `React.lazy` if load time matters.

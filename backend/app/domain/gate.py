@@ -10,8 +10,10 @@ Two parts, combined by :func:`evaluate_entry`:
 
 Documented assumptions: the market counts as "down" when SPY is below its 200-day average
 (BR-010); the regime counts as deteriorated below a score of 25 (BR-015). Rules about equities
-(market cap, earnings) are skipped for ETFs and indices. BR-011 (assignment alarms) and BR-013
-(correlation) are reported as *not evaluated* until the alert engine and risk analytics exist.
+(market cap, earnings) are skipped for ETFs and indices. BR-011 (assignment alarms) is reported
+as *not evaluated* when open positions cannot be priced. BR-013 (correlation with an open
+position) needs a candidate, so the master gate alone lists it as not evaluated; the entry gate
+checks it when return histories are supplied.
 """
 
 from __future__ import annotations
@@ -145,13 +147,33 @@ def evaluate_symbol(
     news_flag: bool,
     today: date,
     limits: Thresholds = DEFAULTS,
+    correlations: dict[str, float | None] | None = None,
 ) -> GateResult:
-    """Rules about the specific symbol/contract."""
+    """Rules about the specific symbol/contract.
+
+    ``correlations`` maps each open position's symbol to its correlation with this candidate
+    (None = could not be computed). Leave it out to skip BR-013; an empty dict means nothing is
+    held, so there is nothing to be correlated with.
+    """
     reasons: list[GateReason] = []
     checked: list[str] = ["BR-021"]
 
     def unknown(rule_id: str, what: str) -> None:
         reasons.append(GateReason(rule_id, f"Data unavailable: could not verify {what}.", "data"))
+
+    if correlations is not None:
+        checked.append("BR-013")
+        for held, value in correlations.items():
+            if value is None:
+                unknown("BR-013", f"the correlation with open position {held}")
+            elif value > limits.correlation_max:
+                reasons.append(
+                    GateReason(
+                        "BR-013",
+                        f"{data.symbol} is {value:.2f} correlated with open position {held} "
+                        f"(limit {limits.correlation_max:g}).",
+                    )
+                )
 
     if news_flag:
         reasons.append(GateReason("BR-021", f"{data.symbol} has a news flag set."))
@@ -229,6 +251,7 @@ def evaluate_entry(
     assignment_alarms: int | None = None,
     capital_at_risk: float | None = None,
     limits: Thresholds = DEFAULTS,
+    correlations: dict[str, float | None] | None = None,
 ) -> GateResult:
     """Master gate + symbol gate + layer lock, merged."""
     master = evaluate_master(
@@ -246,7 +269,9 @@ def evaluate_entry(
         news_flag=news_flag,
         today=today,
         limits=limits,
+        correlations=correlations,
     )
+    not_evaluated = [r for r in master.not_evaluated if r != "BR-013" or correlations is None]
     reasons = master.reasons + symbol.reasons
     checked = master.checked + symbol.checked
     if layer == "growth":
@@ -254,4 +279,4 @@ def evaluate_entry(
         state = regime.state if regime is not None else UNKNOWN
         if growth_locked(state):
             reasons.append(GateReason("BR-023", f"The Growth layer is locked in a {state} regime."))
-    return _result(reasons, checked, master.not_evaluated)
+    return _result(reasons, checked, not_evaluated)

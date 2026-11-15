@@ -141,3 +141,9 @@ uv run ruff check . && uv run black --check .
 - Set "Minimum open interest" to 100: the page shows "Looser than the default" and the save returns a warning.
 - Open the Signal/Audit log: each save appears as a `settings.update` row with the before and after values.
 - Try a value outside its range through the API: it must answer 422 and change nothing.
+
+### V20. Correlation rule and entry EV (migration 012, needs your database and market hours)
+- Apply `database/migrations/012_trade_entry_ev.sql` to a throwaway Postgres first (and its `_down` once), then to Supabase.
+- Open a short put on one stock, then run the gate check for a close peer (for example two big chip makers, or SPY and QQQ). It should block with BR-013 and name the held symbol; a stock from another sector should pass.
+- Turn the internet off for the history source (or use a made-up symbol): a candidate with an open position elsewhere must block with "Data unavailable" (fail-safe).
+- Add a short put with a credit, a risk amount, a strike and an expiry: the trade shows an `entry_ev`. Close it; Analytics, EV calibration shows the average expected value and how many trades carry one.

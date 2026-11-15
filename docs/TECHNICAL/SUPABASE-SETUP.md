@@ -85,6 +85,7 @@ node scripts/load-secrets.mjs local
    - `009_alert_acks.sql`
    - `010_scenarios.sql`
    - `011_rule_thresholds.sql`
+   - `012_trade_entry_ev.sql`
 3. Run each one in sequence
 
 ### Option B: Via psql CLI
@@ -101,6 +102,7 @@ psql "$DATABASE_URL" -f database/migrations/008_market_regime.sql
 psql "$DATABASE_URL" -f database/migrations/009_alert_acks.sql
 psql "$DATABASE_URL" -f database/migrations/010_scenarios.sql
 psql "$DATABASE_URL" -f database/migrations/011_rule_thresholds.sql
+psql "$DATABASE_URL" -f database/migrations/012_trade_entry_ev.sql
 ```
 
 ### Option C: Via migration scripts

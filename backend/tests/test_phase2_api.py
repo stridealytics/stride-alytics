@@ -172,9 +172,8 @@ def test_a_clear_entry_is_recorded_and_logged_as_allowed(client: TestClient) -> 
     assert r.status_code == 201, r.text
     sig = _signals(client)["data"]
     assert len(sig) == 1 and sig[0]["decision"] == "allowed" and sig[0]["symbol"] == "AAPL"
-    assert (
-        "BR-017" in sig[0]["details"]["checked"] and "BR-013" in sig[0]["details"]["not_evaluated"]
-    )
+    assert "BR-017" in sig[0]["details"]["checked"] and "BR-013" in sig[0]["details"]["checked"]
+    assert "BR-013" not in sig[0]["details"]["not_evaluated"]
 
 
 def test_a_blocked_entry_is_refused_with_every_reason_and_nothing_is_created(

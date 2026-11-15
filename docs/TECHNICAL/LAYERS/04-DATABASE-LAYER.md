@@ -542,3 +542,7 @@ The Weekly Picks page reads the existing `weekly_picks` table (written by the sc
 ## 19. Rule thresholds (migration 011)
 
 `011_rule_thresholds.sql` (down file included) adds `user_settings.thresholds` (JSONB, default `{}`). It holds only the rule thresholds the user changed; any missing key uses the default in `backend/app/domain/thresholds.py`, which also defines each key's allowed range. Changes go through `PUT /settings` and write a `settings.update` row to `audit_events` (before and after values).
+
+## 20. Entry EV on trades (migration 012)
+
+`012_trade_entry_ev.sql` (down file included) adds `trades.entry_ev` (NUMERIC(12,2), nullable): the expected value in dollars computed when a short option was opened (`app/domain/ev.py:entry_ev`: PoP from the live delta, gain = the credit kept, loss = the risk amount). It is NULL for stock, long options, back-dated entries and anything missing an input. `/analytics/ev-calibration` averages it per layer.
