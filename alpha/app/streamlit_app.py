@@ -55,14 +55,14 @@ def _load_from_supabase(table: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=600)  # data changes once a day; fewer Supabase reads
 def get_daily_metrics() -> pd.DataFrame:
     """Load daily metrics from Supabase - already contains all computed fields."""
     daily = _load_from_supabase("daily_metrics")
     return daily
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=600)  # data changes once a day; fewer Supabase reads
 def get_option_scores() -> pd.DataFrame:
     """Load option scores - uses daily_metrics which has all computed fields."""
     df = _load_from_supabase("daily_metrics")
@@ -95,7 +95,7 @@ def get_option_scores() -> pd.DataFrame:
     return df[available].copy()
 
 
-@st.cache_data
+@st.cache_data(ttl=600)
 def get_trades() -> pd.DataFrame:
     return pd.DataFrame()
 
@@ -188,6 +188,37 @@ st.markdown(
 st.set_page_config(
     page_title="Option Trading System", layout="wide", page_icon="assets/icon/favicon.ico"
 )
+
+
+def _require_password() -> None:
+    """Gate the dashboard behind DASHBOARD_PASSWORD (Streamlit secret or env var).
+
+    Streamlit Community Cloud apps are public by default. With no password configured the app
+    still opens (local use) but shows a warning, so a public deployment is never silent.
+    """
+    import hmac
+    import os
+
+    expected = os.getenv("DASHBOARD_PASSWORD")
+    try:
+        expected = expected or st.secrets.get("DASHBOARD_PASSWORD")
+    except Exception:  # noqa: BLE001 - no secrets file locally
+        pass
+    if not expected:
+        st.warning("DASHBOARD_PASSWORD is not set: this dashboard is open to anyone with the link.")
+        return
+    if st.session_state.get("_authed"):
+        return
+    entered = st.text_input("Password", type="password")
+    if entered and hmac.compare_digest(entered.encode(), str(expected).encode()):
+        st.session_state["_authed"] = True
+        st.rerun()
+    elif entered:
+        st.error("Wrong password.")
+    st.stop()
+
+
+_require_password()
 st.markdown("# StrideAlytics Alpha Dashboard")
 
 # Load data once at startup

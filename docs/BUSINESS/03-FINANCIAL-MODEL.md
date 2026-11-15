@@ -27,7 +27,8 @@ Current total: **$0 per month.**
 - Prefer free tiers. When a free limit is reached, first reduce usage: store less data, cache results, run fewer scheduled jobs.
 - Add a paid API or service only when a free tier can't meet a real need (for example data quality or rate limits), and record it in the table above.
 - Store only screened candidates and daily aggregates, not full option chains, and prune old rows on a schedule.
-- Keep scheduled workflows within the Actions minute budget (see §3).
+- Keep scheduled workflows within the Actions minute budget (see §3): the weekday market jobs run as one workflow (`market-close.yml`) and CI is not duplicated by the deploy workflows.
+- Retention is automated: `weekly.yml` runs `scheduler/scripts/prune_data.py` (expired options; alpha daily rows > 180 days, picks > 365 days, screener history > 180 days; tune with `*_RETENTION_DAYS`).
 - Take your own database backup on a schedule (`pg_dump` in a GitHub Actions workflow), because free Supabase has no managed backups.
 
 ## 3. Usage Tracking

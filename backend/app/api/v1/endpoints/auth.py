@@ -120,7 +120,12 @@ async def login(payload: LoginRequest) -> TokenResponse:
 
 @router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def signup(payload: SignupRequest) -> TokenResponse:
-    """Create a new user via Supabase Auth."""
+    """Create a new user via Supabase Auth (disabled unless ALLOW_SIGNUP=true; always open in dev)."""
+    if not (settings.ALLOW_SIGNUP or dev_auth_enabled()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Self-service signup is disabled. Ask the owner to create your account.",
+        )
     if _supabase_env_present():
         try:
             supabase_data = await _supabase_auth_request(

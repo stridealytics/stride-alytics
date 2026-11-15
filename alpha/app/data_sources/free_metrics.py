@@ -12,6 +12,7 @@ Proxies (documented, not exact):
 from __future__ import annotations
 
 import math
+import time
 from datetime import date
 
 import numpy as np
@@ -195,12 +196,31 @@ def fetch_row(ticker: str, today: date | None = None) -> dict:
     return build_row(ticker, info, hist, options, calendar)
 
 
+RETRY_DELAYS_SECONDS = (2.0, 6.0)  # yfinance is unofficial: back off on a rate-limit/hiccup
+
+
+def fetch_row_with_retry(ticker: str, sleep=time.sleep) -> dict:
+    """``fetch_row`` with a short backoff; raises the last error when every attempt fails."""
+    for delay in (*RETRY_DELAYS_SECONDS, None):
+        try:
+            return fetch_row(ticker)
+        except Exception:
+            if delay is None:
+                raise
+            sleep(delay)
+    raise RuntimeError("unreachable")  # pragma: no cover
+
+
 def fetch_metrics(tickers: list[str]) -> pd.DataFrame:
     """One row per ticker; a ticker that fails entirely is skipped and reported."""
     rows = []
+    failed = 0
     for ticker in tickers:
         try:
-            rows.append(fetch_row(ticker))
+            rows.append(fetch_row_with_retry(ticker))
         except Exception as exc:
+            failed += 1
             print(f"[WARNING] yfinance failed for {ticker}: {exc}")
+    if failed:
+        print(f"[WARNING] yfinance: {failed}/{len(tickers)} tickers failed after retries")
     return pd.DataFrame(rows)

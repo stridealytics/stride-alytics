@@ -33,7 +33,7 @@ services:
         value: "production"
       - key: SUPABASE_JWT_SECRET
         sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
+      - key: ALLOW_SIGNUP
+        value: "false"
       - key: SLACK_WEBHOOK
         sync: false

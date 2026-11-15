@@ -27,7 +27,7 @@ Once the project is created, go to **Project Settings → API**:
 | `SUPABASE_ANON_KEY` | Project Settings → API → anon/public | Backend, Frontend |
 | `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API → service_role (secret!) | Backend (server-only) |
 | `SUPABASE_JWT_SECRET` | Project Settings → API → JWT Secret | Backend (auth middleware) |
-| `DATABASE_URL` | Project Settings → Database → Connection string → Direct | Backend |
+| `DATABASE_URL` | Project Settings → Database → Connection string → **Transaction pooler** (port 6543). Not the Direct string: it is IPv6-only and Render's free tier is IPv4-only | Backend |
 
 Then go to **Project Settings → General**:
 
@@ -49,7 +49,8 @@ cp secrets/local.env.example secrets/local.env
 Edit `secrets/local.env` and fill in:
 
 ```env
-DATABASE_URL=postgresql://postgres:YOUR_DB_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres
+# Transaction pooler (copy it from the dashboard; the user is postgres.<project-ref>)
+DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_DB_PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=eyJ... (your anon key)
 SUPABASE_SERVICE_ROLE_KEY=eyJ... (your service role key)
@@ -99,6 +100,12 @@ psql "$DATABASE_URL" -f database/migrations/005_extended_features.sql
 psql "$DATABASE_URL" -f database/migrations/006_drop_subscription_plan.sql
 psql "$DATABASE_URL" -f database/migrations/007_persistence_logs.sql
 psql "$DATABASE_URL" -f database/migrations/008_market_regime.sql
+psql "$DATABASE_URL" -f database/migrations/009_alert_acks.sql
+psql "$DATABASE_URL" -f database/migrations/010_scenarios.sql
+psql "$DATABASE_URL" -f database/migrations/011_rule_thresholds.sql
+psql "$DATABASE_URL" -f database/migrations/012_trade_entry_ev.sql
+# 013 enables RLS on alpha tables and widens options theta/vega/rho (apply alpha/app/supabase_schema.sql first)
+psql "$DATABASE_URL" -f database/migrations/013_alpha_rls_and_numeric_widen.sql
 psql "$DATABASE_URL" -f database/migrations/009_alert_acks.sql
 psql "$DATABASE_URL" -f database/migrations/010_scenarios.sql
 psql "$DATABASE_URL" -f database/migrations/011_rule_thresholds.sql
@@ -230,3 +237,10 @@ cd scheduler && python scripts/generate_picks.py
 
 # Run tests:
 cd backend && uv run pytest -v
+
+## Free-tier hardening checklist
+
+- **Disable public signup**: Authentication → Providers → Email → turn off "Allow new users to sign up", then create your own user under Authentication → Users. The API also refuses `/auth/signup` unless `ALLOW_SIGNUP=true`.
+- **Use the service_role key** only in GitHub secrets, alpha and the scheduler; never in the frontend. The alpha tables have RLS on and no policies, so the public anon key cannot read or write them.
+- **JWT signing**: the API verifies both the legacy shared secret (`SUPABASE_JWT_SECRET`, HS256) and asymmetric signing keys (JWKS derived from `SUPABASE_URL`).
+- **Retention**: `.github/workflows/weekly.yml` runs `scheduler/scripts/prune_data.py` (expired options, alpha rows older than 180 days, old picks and screener history). Run it once with the `prune_dry_run` input to see what it would delete.

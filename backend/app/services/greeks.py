@@ -13,8 +13,6 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from scipy import stats
-
 from app.utils.constants import DEFAULT_RISK_FREE_RATE, DEFAULT_VOLATILITY
 
 
@@ -54,13 +52,13 @@ def _d1_d2(
 
 
 def _norm_cdf(x: float) -> float:
-    """Standard normal CDF narrowed to ``float`` (scipy returns ``np.floating``)."""
-    return float(stats.norm.cdf(x))
+    """Standard normal CDF (pure ``math``: keeps this module free of scipy/numpy)."""
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
 
 
 def _norm_pdf(x: float) -> float:
-    """Standard normal PDF narrowed to ``float`` (scipy returns ``np.floating``)."""
-    return float(stats.norm.pdf(x))
+    """Standard normal PDF."""
+    return math.exp(-0.5 * x * x) / math.sqrt(2.0 * math.pi)
 
 
 def calculate_option_price(

@@ -29,11 +29,18 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 | 24 | Confirm Phase 4 behaviour (limits, matrix, EV) | P2 | you | Checklist below |
 | 22 | Band usage endpoint shape | P3 | you | Decision |
 | 26 | Google service-account key exposed locally | P1 | you | Template fixed; rotate the key in Google Cloud |
+| 27 | Review hardening: apply migration 013, switch `DATABASE_URL` to the pooler, disable Supabase signup, check the new workflows | P1 | you | Code done and tested; needs your Supabase and GitHub access |
 | 12 to 16 | Spec mismatches, alpha robustness and lint, tests, leftovers, hygiene (incl. the unexplained file revert) | P3 | me + you | Partly done |
 
 ---
 
 ## P1
+
+### 27. Hardening from the architecture review (code done 2026-11-15)
+- Done in code: scheduler no longer crashes on import (Greeks are scipy-free; `structlog` and `email-validator` added) and exits non-zero when nothing is stored; Greeks use the underlying's spot and batched upserts; migration 013 (RLS on alpha tables, wider `theta/vega/rho`); production refuses the in-memory SQLite fallback; signup off by default (`ALLOW_SIGNUP`); JWKS (asymmetric Supabase keys) supported; pooler-safe engine settings; bounded and negative-cached live position data; weekly prune job; weekday jobs merged into `market-close.yml`; duplicate CI workflows removed; Streamlit password gate; frontend lazy routes, CSP and cold-start retry.
+- You do: (1) apply `database/migrations/013_alpha_rls_and_numeric_widen.sql` on Supabase; (2) set `DATABASE_URL` on Render to the **transaction pooler** string; (3) turn off "Allow new users to sign up" in Supabase and create your user; (4) confirm `SUPABASE_KEY` in alpha/GitHub secrets is the service_role key; (5) set `DASHBOARD_PASSWORD` on Streamlit; (6) run `Weekly Jobs` once with `prune_dry_run` and `Market Close Jobs` once from the Actions tab; (7) check `secrets/github-secrets.txt` holds names only.
+- Optional: a free 10-minute UptimeRobot ping to `/health` keeps Render awake in market hours (otherwise the first request waits 30 to 60 s; the frontend retries reads once).
+- Done when: both workflows are green on GitHub and the app works after a Render sleep.
 
 ### 1. Open a pull request and get CI green
 - All work (scope docs, plan removal, security and trade fixes, Phases 1 to 4, PostgreSQL validation tooling, live-data fixes, auth hardening, alpha scoring) is committed and pushed on `feature/main-implementation` (origin is up to date as of 2026-11-14).

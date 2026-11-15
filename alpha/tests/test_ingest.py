@@ -120,8 +120,23 @@ def test_a_failing_ticker_is_skipped(monkeypatch) -> None:
         return {"Ticker": ticker}
 
     monkeypatch.setattr(fm, "fetch_row", fake)
+    monkeypatch.setattr(fm, "RETRY_DELAYS_SECONDS", ())  # no real sleeping in tests
     assert list(fm.fetch_metrics(["A", "BAD", "B"])["Ticker"]) == ["A", "B"]
     assert fm.fetch_metrics(["BAD"]).empty
+
+
+def test_a_flaky_ticker_succeeds_on_retry(monkeypatch) -> None:
+    calls = {"n": 0}
+
+    def flaky(ticker, today=None):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise RuntimeError("rate limited")
+        return {"Ticker": ticker}
+
+    monkeypatch.setattr(fm, "fetch_row", flaky)
+    assert fm.fetch_row_with_retry("A", sleep=lambda s: None) == {"Ticker": "A"}
+    assert calls["n"] == 3
 
 
 def test_pipeline_uses_given_tickers(monkeypatch) -> None:

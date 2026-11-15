@@ -235,8 +235,9 @@ Note: the workflow does not run ingestion, so today's data must already be in Su
 |----------------|----------|------------------------------------|
 | `SUPABASE_URL` | Yes      | Supabase project URL               |
 | `SUPABASE_KEY` | Yes      | Supabase service role key          |
-| `POLYGON_API_KEY` | Ingestion only | Polygon.io API key         |
-| `FMP_API_KEY`  | Ingestion only | Financial Modeling Prep API key |
+| `POLYGON_API_KEY` | No | Not used by the default free yfinance ingest (`INGEST_LIVE=1`) |
+| `FMP_API_KEY`  | No | Optional: only the FMP "most active" ticker list uses it |
+| `DASHBOARD_PASSWORD` | Streamlit only | Gates the Streamlit dashboard (env var or Streamlit secret); unset = open |
 | `MASSIVE_API_KEY` | No    | Optional extra data source         |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Service-account JSON (or place `service_account.json` in `alpha/`) |
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | No | Target spreadsheet; Sheets push is skipped if unset |

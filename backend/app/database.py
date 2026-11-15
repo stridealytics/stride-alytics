@@ -60,7 +60,13 @@ def configure_engine(url: str) -> None:
         if ":memory:" in url:
             kwargs["poolclass"] = StaticPool  # keep one connection so the DB survives
     else:
+        # Supabase free tier: few connections, behind the pgbouncer pooler (transaction mode).
         kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
+        kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+        kwargs["pool_pre_ping"] = True  # drop connections the pooler/Supabase closed while idle
+        kwargs["pool_recycle"] = 300
+        # The transaction-mode pooler cannot keep server-side prepared statements.
+        kwargs["connect_args"] = {"prepare_threshold": None}
     engine = create_async_engine(url, **kwargs)
     async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     using_sqlite_fallback = url.startswith("sqlite")
@@ -93,6 +99,14 @@ async def init_db() -> None:
         if settings.DATABASE_URL:
             configure_engine(settings.DATABASE_URL)
         else:
+            if settings.ENVIRONMENT.strip().lower() == "production":
+                # Fail fast: a missing/misspelled env var must not silently run on a database
+                # that loses every trade the next time the free instance sleeps.
+                raise RuntimeError(
+                    "DATABASE_URL is not set while ENVIRONMENT=production. Refusing to start on "
+                    "the in-memory SQLite fallback. Set DATABASE_URL (Supabase pooler URL), or "
+                    "ENVIRONMENT=development for local work."
+                )
             configure_engine(SQLITE_MEMORY_URL)
             logger.warning(
                 "DATABASE_URL is not set: using an in-memory SQLite database. "

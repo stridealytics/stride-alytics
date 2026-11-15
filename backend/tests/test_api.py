@@ -307,3 +307,80 @@ def test_cors_never_combines_a_wildcard_with_credentials(client: TestClient) -> 
         assert allowed == origin and credentials == "true"
         other = client.get("/health", headers={"Origin": "https://evil.example"})
         assert other.headers.get("access-control-allow-origin") is None  # unlisted origins refused
+
+
+# --- Hardening: signup, startup safety, JWKS ----------------------------------
+
+
+def test_signup_is_disabled_outside_development(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "ALLOW_SIGNUP", False)
+    r = client.post(
+        "/api/v1/auth/signup", json={"email": "x@example.com", "password": "Passw0rd!x"}
+    )
+    assert r.status_code == 403
+
+
+def test_production_refuses_in_memory_database(monkeypatch: pytest.MonkeyPatch) -> None:
+    import asyncio
+
+    from app import database
+    from app.config import settings
+
+    monkeypatch.setattr(database, "engine", None)
+    monkeypatch.setattr(settings, "DATABASE_URL", None)
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        asyncio.run(database.init_db())
+
+
+def test_unsupported_token_algorithm_is_rejected(client: TestClient, jwt_secret: str) -> None:
+    from jose import jwt
+
+    token = jwt.encode({"sub": "u", "aud": "authenticated"}, jwt_secret, algorithm="HS512")
+    r = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 401
+
+
+def test_asymmetric_token_is_verified_against_jwks(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from jose import jwk, jwt
+
+    from app.config import settings
+    from app.services import auth as auth_service
+
+    private = ec.generate_private_key(ec.SECP256R1())
+    pem = private.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    public_jwk = jwk.construct(
+        private.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        ),
+        "ES256",
+    ).to_dict()
+    public_jwk["kid"] = "k1"
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", None)
+    monkeypatch.setattr(settings, "SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setattr(auth_service, "_get_jwks", lambda force=False: {"keys": [public_jwk]})
+    token = jwt.encode(
+        {"sub": "user-9", "aud": "authenticated", "exp": int(time.time()) + 600},
+        pem.decode(),
+        algorithm="ES256",
+        headers={"kid": "k1"},
+    )
+    r = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["user_id"] == "user-9"

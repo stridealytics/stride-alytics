@@ -19,6 +19,10 @@ from app.utils.logger import get_logger
 log = get_logger(__name__)
 
 CACHE_TTL_SECONDS = 60
+# Failures are remembered briefly so a flapping/blocked yfinance is not hammered by every refetch
+# (the alerts page polls), but recovers quickly.
+NEGATIVE_TTL_SECONDS = 30
+CACHE_MAX_ENTRIES = 256
 PositionDataProvider = Callable[..., MarketInput]
 
 _lock = threading.Lock()
@@ -75,8 +79,10 @@ def fetch_position_market(
     now = time.monotonic()
     with _lock:
         hit = _cache.get(key)
-        if hit and now - hit[0] < CACHE_TTL_SECONDS:
-            return hit[1]
+        if hit:
+            ttl = CACHE_TTL_SECONDS if hit[1].available else NEGATIVE_TTL_SECONDS
+            if now - hit[0] < ttl:
+                return hit[1]
 
     result = MarketInput(available=False)
     try:
@@ -113,9 +119,11 @@ def fetch_position_market(
     except Exception as exc:  # noqa: BLE001
         log.warning("position_data.failed", symbol=symbol, error=str(exc))
 
-    if result.available:  # failures are not cached, so the next request retries
-        with _lock:
-            _cache[key] = (now, result)
+    with _lock:
+        if len(_cache) >= CACHE_MAX_ENTRIES:  # bounded: drop the oldest entries first
+            for stale in sorted(_cache, key=lambda k: _cache[k][0])[: CACHE_MAX_ENTRIES // 4]:
+                del _cache[stale]
+        _cache[key] = (now, result)
     return result
 
 

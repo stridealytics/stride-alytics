@@ -32,7 +32,8 @@ export const tokenStore = {
 export const client = axios.create({
   baseURL: API_ROOT,
   headers: { "Content-Type": "application/json" },
-  timeout: 20_000,
+  // A sleeping free-tier Render instance needs 30-60 s to wake up, so allow for it.
+  timeout: 60_000,
 });
 
 // Request interceptor — attach JWT
@@ -55,6 +56,15 @@ export const AUTH_LOGOUT_EVENT = "stride:auth:logout";
 client.interceptors.response.use(
   (res) => res,
   (error) => {
+    // Cold start: the first request after idle can fail with a network error or a proxy 502/503/504
+    // while the API boots. Retry reads once after a pause; never retry writes (not idempotent).
+    const cfg = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+    const status = error.response?.status as number | undefined;
+    const coldStart = !error.response || status === 502 || status === 503 || status === 504;
+    if (cfg && !cfg._retried && coldStart && cfg.method?.toLowerCase() === "get") {
+      cfg._retried = true;
+      return new Promise((resolve) => setTimeout(resolve, 4_000)).then(() => client.request(cfg));
+    }
     if (error.response?.status === 401) {
       tokenStore.clear();
       if (typeof window !== "undefined") {

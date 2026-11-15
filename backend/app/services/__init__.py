@@ -4,40 +4,8 @@ One file per backend resource. Services must be HTTP‑agnostic — they take
 plain Python types and return plain Python types / Pydantic models. The
 endpoint layer (``app.api.v1.endpoints.*``) is the only place that imports
 ``fastapi`` and translates requests into service calls.
+
+This package deliberately re-exports nothing: the scheduler imports single modules
+(``app.services.greeks``, ``app.services.screener``) and must not drag in auth, the database
+or FastAPI. Import from the submodule you need.
 """
-
-from app.services.greeks import (
-    GreeksResult,
-    calculate_greeks,
-    calculate_greeks_dict,
-    calculate_option_price,
-)
-from app.services.market import fetch_tickers
-from app.services.screener import ScreenerFilters, run_screener
-from app.services.regime import RegimeResult, detect_regime
-from app.services.portfolio import (
-    Portfolio,
-    Trade,
-    calculate_pnl,
-    portfolio_summary,
-    portfolio_trade_breakdown,
-)
-from app.services.auth import verify_supabase_jwt
-
-__all__ = [
-    "GreeksResult",
-    "calculate_greeks",
-    "calculate_greeks_dict",
-    "calculate_option_price",
-    "fetch_tickers",
-    "ScreenerFilters",
-    "run_screener",
-    "RegimeResult",
-    "detect_regime",
-    "Portfolio",
-    "Trade",
-    "calculate_pnl",
-    "portfolio_summary",
-    "portfolio_trade_breakdown",
-    "verify_supabase_jwt",
-]

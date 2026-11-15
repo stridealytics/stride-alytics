@@ -253,6 +253,10 @@ def main():
     else:
         print(f"  📧 Email notification skipped (SENDGRID_API_KEY not set)")
 
+    # Publishing nothing is a failed run: exit non-zero so the workflow alerts.
+    if inserted == 0:
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

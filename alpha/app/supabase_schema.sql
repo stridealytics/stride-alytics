@@ -169,3 +169,20 @@ create table if not exists alpha_state (
 --    --   create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
 --    (same for option_scores, bands, weekly_watchlist)
 -- ─────────────────────────────────────────────
+
+
+-- ─────────────────────────────────────────────
+-- 10. Row-level security (REQUIRED)
+--     These tables are in `public`, so Supabase exposes them to the public anon key.
+--     RLS with no policies denies anon/authenticated access; alpha, the scheduler and the
+--     Streamlit app use the service_role key, which bypasses RLS. Also applied by
+--     database/migrations/013_alpha_rls_and_numeric_widen.sql.
+-- ─────────────────────────────────────────────
+alter table daily_metrics    enable row level security;
+alter table option_scores    enable row level security;
+alter table bands            enable row level security;
+alter table weekly_watchlist enable row level security;
+alter table alpha_trades     enable row level security;
+alter table alpha_audit_log  enable row level security;
+alter table ticker_universe  enable row level security;
+alter table alpha_state      enable row level security;

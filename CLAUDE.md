@@ -79,9 +79,10 @@ Failures in the insert and Sheets steps only log a warning.
 
 ## Configuration
 
-- Alpha (`alpha/app/config.py`): `SUPABASE_URL`, `SUPABASE_KEY`, `POLYGON_API_KEY` and `FMP_API_KEY` are required. `MASSIVE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID` and the Slack/Discord webhook URLs are optional. The alpha README says to copy `alpha/.env.example`, but that file is not tracked.
+- Alpha (`alpha/app/config.py`): `SUPABASE_URL` and `SUPABASE_KEY` (service_role) are required. `POLYGON_API_KEY`, `FMP_API_KEY`, `DASHBOARD_PASSWORD` (Streamlit gate), `MASSIVE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID` and the Slack/Discord webhook URLs are optional. The alpha README says to copy `alpha/.env.example`, but that file is not tracked.
 - Root and `backend/` `.env.example` cover the backend, frontend and mobile settings.
 - Backend `ENVIRONMENT` defaults to `production`. Dev auth tokens (`dev:<id>`, `dev-admin-token`) and the dev login fallback work only with `ENVIRONMENT=development` (set it in `backend/.env` for local work). Real Supabase JWTs are verified with audience `authenticated` (`SUPABASE_JWT_AUDIENCE`).
+- `ALLOW_SIGNUP` (default false) gates `/auth/signup`; production refuses to start without `DATABASE_URL`; use the Supabase transaction-pooler URL. Auth accepts HS256 (`SUPABASE_JWT_SECRET`) and ES256/RS256 (JWKS from `SUPABASE_URL`). `scheduler/` scripts reuse single `backend/app` modules (`app.services` re-exports nothing on purpose) and `scheduler/tests` guards that they import; weekday jobs run in `market-close.yml`, weekly picks and `prune_data.py` in `weekly.yml`.
 - API responses for market tickers, the screener and regime carry a `source` field; anything other than `live` is placeholder data and the UI labels it.
 
 ## Diagrams
