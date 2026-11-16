@@ -6,7 +6,7 @@
 
 ## 1. Document Purpose
 
-This document translates the StrideAlytics Build Guide (originally titled the Options Selling Platform, OSP) into formal business requirements, product vision, user personas, platform phases, and high-level acceptance criteria. It is the authoritative reference for developers, product managers, and stakeholders building the web app, mobile app, backend API, and platform operations.
+This document translates the StrideAlytics Stock and Options Trading System (SOTS) Build Guide (`requirements/Business/stock-and-options-trading-system-build-guide.docx`) into formal business requirements, product vision, user personas, platform phases, and high-level acceptance criteria. It is the authoritative reference for developers, product managers, and stakeholders building the web app, mobile app, backend API, and platform operations.
 
 ## 2. Important Disclaimer
 
@@ -22,7 +22,7 @@ The user interface follows a **hub-and-spoke architecture**: the Home screen ser
 
 ## 4. Strategic Objectives
 
-- Codify the full OSP rule set into production software: settings, DNT filters, regime scoring, sizing, exit logic.
+- Codify the full SOTS rule set into production software: settings, DNT filters, regime scoring, sizing, exit logic.
 - Provide real-time portfolio Greeks monitoring with hard gate enforcement.
 - Surface regime-aware weekly trade picks ranked by Expected Value (EV).
 - Replace manual spreadsheet workflows with a scalable, API-driven web and mobile platform.

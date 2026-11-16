@@ -1,7 +1,7 @@
-# Pending items
+# Pending work
 
 Priority: **P1** = do next, **P2** = soon, **P3** = when convenient.
-Delete an item when it is done and validated (see [README](README.md)). Last updated: 2026-11-14.
+Delete an item when it is done and validated (see [README](README.md)). Last updated: 2026-11-16.
 
 ## Board
 
@@ -9,58 +9,54 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 
 | # | Item | Priority | Who | State |
 |---|------|----------|-----|-------|
-| 1 | Open a PR to `develop` and get CI green | P1 | you | Committed and pushed to `feature/main-implementation`; CI not yet seen |
-| 2 | Apply migrations 006 to 010 to Supabase | P1 | you | Verified on local PostgreSQL 16; not on Supabase |
-| 3 | Persistence on real PostgreSQL; `DATABASE_URL` on Render | P1 | you | Smoke test 11/11 and the full suite pass locally |
-| 4 | Verify the daily workflow on GitHub | P1 | you | Needs repo secrets |
-| 5 | Real Supabase login end to end | P1 | you | Unit-tested only |
-| 19 | Gate and option data on a weekday, market hours | P1 | you + me | Saturday run done; weekday run open |
-| 25 | Decide the open-interest rule and the stale-earnings fail-safe | P1 | you | Findings recorded |
-| 6 | Real data ingestion for alpha | P2 | you | Free data chosen; `INGEST_LIVE=1` set; run once to check |
-| 7 | Clean up old duplicate rows in Supabase | P2 | you | Needs the database |
-| 8 | Protect the Streamlit dashboard | P2 | you | Needs hosting access |
-| 10 | Session renewal (refresh token) | P2 | me | Test it with item 5 |
-| 11 | `CORS_ORIGINS` on Render | P2 | you | Code fixes done (ticker source fixed) |
-| 17 | Close the doc-vs-code gaps | P2 | you + me | See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md) |
-| 18 | Alpha and backend table-name collisions | P2 | you | Fixed in code (`alpha_trades`, `alpha_audit_log`); apply the schema |
-| 20 | Confirm the Phase 2 rule assumptions | P2 | you | Checklist below |
-| 21 | Rule thresholds as Settings (FR-830) | P2 | you | Built; apply migration 011 and check the Settings page |
+| 1 | Open a pull request to `develop` and get CI green | P1 | you | Committed and pushed to `feature/main-implementation`; CI not yet seen |
+| 2 | Apply migrations 006 to 013 to Supabase | P1 | you | Verified on local PostgreSQL 16; not on Supabase |
+| 3 | Validate persistence on Supabase (pooler `DATABASE_URL` on Render) | P1 | you | Smoke test 11/11 and the full suite pass locally |
+| 4 | Run the alpha daily workflow on GitHub | P1 | you | Needs repo secrets |
+| 5 | Test a real Supabase login end to end | P1 | you | Unit-tested only |
+| 19 | Validate the Do-Not-Trade gate with weekday market data | P1 | you + me | Saturday run done; weekday run open |
+| 25 | Decide the open-interest rule and stale-earnings fail-safe (live-data findings, 2026-11-14) | P1 | you | Findings recorded |
+| 26 | Rotate the possibly exposed Google service-account key | P1 | you | Template fixed; rotate the key in Google Cloud |
+| 27 | Apply the architecture-review hardening (migration 013, pooler URL, signup off, new workflows) | P1 | you | Code done and tested; needs your Supabase and GitHub access |
+| 6 | Run live data ingestion for alpha | P2 | you | Free data chosen; `INGEST_LIVE=1` set; run once to check |
+| 7 | Remove old duplicate rows in Supabase | P2 | you | Needs the database |
+| 8 | Password-protect the Streamlit dashboard | P2 | you | Needs hosting access |
+| 10 | Frontend session renewal (refresh token) | P2 | me | Test it with item 5 |
+| 11 | Set `CORS_ORIGINS` on Render | P2 | you | Code fixes done (ticker source fixed) |
+| 17 | Close the docs-vs-code gaps | P2 | you + me | See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md) |
+| 18 | Resolve alpha and backend table-name collisions | P2 | you | Fixed in code (`alpha_trades`, `alpha_audit_log`); apply the schema |
+| 20 | Confirm Phase 2 rule assumptions (gate, regime, sizing) | P2 | you | Checklist below |
+| 21 | Verify rule thresholds as user Settings (FR-830) | P2 | you | Built; apply migration 011 and check the Settings page |
 | 23 | Confirm Phase 3 behaviour (alerts, P&L x100) | P2 | you | Checklist below |
 | 24 | Confirm Phase 4 behaviour (limits, matrix, EV) | P2 | you | Checklist below |
-| 22 | Band usage endpoint shape | P3 | you | Decision |
-| 26 | Google service-account key exposed locally | P1 | you | Template fixed; rotate the key in Google Cloud |
-| 27 | Review hardening: apply migration 013, switch `DATABASE_URL` to the pooler, disable Supabase signup, check the new workflows | P1 | you | Code done and tested; needs your Supabase and GitHub access |
-| 12 to 16 | Spec mismatches, alpha robustness and lint, tests, leftovers, hygiene (incl. the unexplained file revert) | P3 | me + you | Partly done |
+| 12 to 16 | Cleanup group: items 12 to 16 (spec mismatches, alpha data handling, test coverage, dropped-feature leftovers, repository cleanup) | P3 | me + you | Partly done |
+| 22 | Decide the band usage endpoint shape | P3 | you | Decision |
 
 ---
 
+
+
 ## P1
 
-### 27. Hardening from the architecture review (code done 2026-11-15)
-- Done in code: scheduler no longer crashes on import (Greeks are scipy-free; `structlog` and `email-validator` added) and exits non-zero when nothing is stored; Greeks use the underlying's spot and batched upserts; migration 013 (RLS on alpha tables, wider `theta/vega/rho`); production refuses the in-memory SQLite fallback; signup off by default (`ALLOW_SIGNUP`); JWKS (asymmetric Supabase keys) supported; pooler-safe engine settings; bounded and negative-cached live position data; weekly prune job; weekday jobs merged into `market-close.yml`; duplicate CI workflows removed; Streamlit password gate; frontend lazy routes, CSP and cold-start retry.
-- You do: (1) apply `database/migrations/013_alpha_rls_and_numeric_widen.sql` on Supabase; (2) set `DATABASE_URL` on Render to the **transaction pooler** string; (3) turn off "Allow new users to sign up" in Supabase and create your user; (4) confirm `SUPABASE_KEY` in alpha/GitHub secrets is the service_role key; (5) set `DASHBOARD_PASSWORD` on Streamlit; (6) run `Weekly Jobs` once with `prune_dry_run` and `Market Close Jobs` once from the Actions tab; (7) check `secrets/github-secrets.txt` holds names only.
-- Optional: a free 10-minute UptimeRobot ping to `/health` keeps Render awake in market hours (otherwise the first request waits 30 to 60 s; the frontend retries reads once).
-- Done when: both workflows are green on GitHub and the app works after a Render sleep.
-
-### 1. Open a pull request and get CI green
+### 1. Open a pull request to `develop` and get CI green
 - All work (scope docs, plan removal, security and trade fixes, Phases 1 to 4, PostgreSQL validation tooling, live-data fixes, auth hardening, alpha scoring) is committed and pushed on `feature/main-implementation` (origin is up to date as of 2026-11-14).
 - Next: open a PR into `develop` (the main branch) and let `.github/workflows/ci.yml` run. CI now fails on test failures, so the first run is the real check of the backend, alpha and frontend suites on Linux.
 - Watch for: the pre-commit hook (backend black auto-fix aborts the commit once), and alpha's checks, which now run in the pre-commit hook and in CI (ruff, black, pytest; the black step auto-fixes and aborts once, like the backend).
 - Done when: the PR's CI is green and it is merged.
 
-### 2. Apply migrations 006 to 010 to Supabase
+### 2. Apply migrations 006 to 013 to Supabase
 - **Verified on a local throwaway PostgreSQL 16 (2026-11-14):** migrations 001 to 010 apply in order with no errors, the `_down` files for 010 to 006 roll back cleanly and 006 to 010 re-apply, and the whole backend suite (373 tests) passes against the migration-built schema. A minimal stand-in for Supabase's `auth.uid()` and roles was used, so this is **not** yet a test on Supabase itself.
 - `006_drop_subscription_plan.sql`, `007_persistence_logs.sql`, `008_market_regime.sql`, `009_alert_acks.sql` and `010_scenarios.sql` (each with a `_down` file) are written but **not applied**. Apply them in order with `database/scripts/apply_migrations.{sh,ps1}`.
 - **None of them has been applied anywhere yet**, including 008 (`market_regime`), 009 (`alert_acks`) and 010 (`scenarios`). Try all five on a throwaway Supabase project first (see item 3), including each `_down` file once.
 - Done when: all five are applied, login/portfolio/trades still work, and the smoke test passes (Validation V3, V13).
 
-### 3. Validate persistence on real PostgreSQL
+### 3. Validate persistence on Supabase (pooler `DATABASE_URL` on Render)
 - Code is done (Phase 1): portfolios, trades, watchlists, settings and the append-only logs are stored through `backend/app/repositories/sql.py`; unit tests run on SQLite.
 - **Render must have `DATABASE_URL` set.** Without it the backend silently uses in-memory SQLite and loses everything on restart (a warning is logged).
 - **Passed 11/11 on the local throwaway Postgres (2026-11-14)**, including UPDATE/DELETE/TRUNCATE being rejected on `signal_log` and `audit_events`. Repeat it once on a throwaway Supabase project: `backend/scripts/smoke_db.py --disposable` proves the Postgres triggers make `signal_log` / `audit_events` append-only (SQLite cannot).
 - Done when: the smoke test passes, and a trade survives a backend restart on the deployed API (Validation V2, V13).
 
-### 4. Verify the daily workflow on GitHub
+### 4. Run the alpha daily workflow on GitHub
 - `alpha-daily-run.yml` was fixed (`uv run`, secrets as env vars, failure alert) but never run from here.
 - Add repo secrets: `SUPABASE_URL`, `SUPABASE_KEY`; optional `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`, `SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`.
 - Done when: a manual "Run workflow" succeeds and a forced failure produces an alert.
@@ -70,9 +66,34 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - If the project uses asymmetric JWT signing keys (not the HS256 secret), the verifier must change (JWKS).
 - Done when: login in the frontend, then `/auth/me` and portfolio calls return 200.
 
+### 19. Validate the Do-Not-Trade gate with weekday market data
+- **Done on a Saturday (2026-11-14):** 14 symbols, regime, option liquidity, sectors, chains and scenarios were run through the real yfinance providers; results are in `VALIDATION-CHECKLIST.md` ("Live-data results") and the findings are item 25. The gate blocked and cleared for the right reasons, and bid/ask were present rather than 0.
+- **Still to do:** repeat the option checks on a weekday during market hours and in pre-market, when bid/ask can be 0 and would block every option trade ("could not verify"). If that is common, consider a better data source (a paid API is allowed; record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
+- Done when: the weekday check shows typical symbols pass or fail for the right reasons (Validation V15).
+
+### 25. Decide the open-interest rule and stale-earnings fail-safe (live-data findings, 2026-11-14)
+- **Fixed:** the chain loader fetched only the first 3 expirations, so for AAPL (Mon/Wed/Fri weeklies) every contract expired within 6 days and the Option Chain page and the screener's 30-day window found nothing. It now picks up to 8 expirations spread across the window (default 90 days; the screener uses its own `expiry_days_max`).
+- **Fixed:** one contract with a missing volume or open interest (NaN) made `int(NaN)` raise and dropped its whole expiry; NaN also leaked into JSON. Parsing is now NaN-safe, and contracts with no implied volatility are skipped instead of being given an invented 0.3.
+- **Open, decide:** the open-interest minimum of 500 (BR-018) blocks weekly options. The ATM puts of the 30-day weekly (11 Dec) had OI 314 (AAPL), 255 (SPY) and 191 (MSFT), while the monthly (18 Dec) has tens of thousands. Either keep the rule (trade monthlies) or lower it; you can now change it in Settings (item 21).
+- **Open, accept or change:** when yfinance gives only a past earnings date (Ford: 2026-10-28), BR-020 blocks with "could not verify the next earnings date". That is the intended fail-safe, but it blocks every trade in such symbols until the date updates.
+- **Not yet checked:** a weekday, during market hours and in pre-market, when bid/ask can be 0. Repeat the V15 option checks then.
+- Cosmetic: yfinance logs HTTP 404 for SPY/QQQ fundamentals (ETFs have none); the gate handles ETFs correctly.
+- Done when: the OI rule is decided and the weekday check is done (Validation V15).
+
+### 26. Rotate the possibly exposed Google service-account key
+- **Fixed in the repo:** `alpha/.env.example` is now a placeholder template and `.gitignore` re-allows it (`!.env.example`), so it can be committed. The key was never in git history (only the placeholder `service_account.example.json` is tracked). The real key remains in the ignored local file `alpha/service_account.json`.
+- **You (the part that matters):** the key may also have appeared in an earlier tool output of this Claude Code session's local transcript, so treat it as exposed. In Google Cloud Console: IAM and Admin, Service Accounts, the account, Keys: add a new key (JSON), save it as `alpha/service_account.json` (ignored by git), then delete the old key. If you use the `GOOGLE_SERVICE_ACCOUNT_JSON` GitHub secret, update it with the new JSON.
+- Done when: the old key is deleted in Google Cloud and the new one works (run the Sheets push once, V18).
+
+### 27. Apply the architecture-review hardening (migration 013, pooler URL, signup off, new workflows) (code done 2026-11-15)
+- Done in code: scheduler no longer crashes on import (Greeks are scipy-free; `structlog` and `email-validator` added) and exits non-zero when nothing is stored; Greeks use the underlying's spot and batched upserts; migration 013 (RLS on alpha tables, wider `theta/vega/rho`); production refuses the in-memory SQLite fallback; signup off by default (`ALLOW_SIGNUP`); JWKS (asymmetric Supabase keys) supported; pooler-safe engine settings; bounded and negative-cached live position data; weekly prune job; weekday jobs merged into `market-close.yml`; duplicate CI workflows removed; Streamlit password gate; frontend lazy routes, CSP and cold-start retry.
+- You do: (1) apply `database/migrations/013_alpha_rls_and_numeric_widen.sql` on Supabase; (2) set `DATABASE_URL` on Render to the **transaction pooler** string; (3) turn off "Allow new users to sign up" in Supabase and create your user; (4) confirm `SUPABASE_KEY` in alpha/GitHub secrets is the service_role key; (5) set `DASHBOARD_PASSWORD` on Streamlit; (6) run `Weekly Jobs` once with `prune_dry_run` and `Market Close Jobs` once from the Actions tab; (7) check `secrets/github-secrets.txt` holds names only.
+- Optional: a free 10-minute UptimeRobot ping to `/health` keeps Render awake in market hours (otherwise the first request waits 30 to 60 s; the frontend retries reads once).
+- Done when: both workflows are green on GitHub and the app works after a Render sleep.
+
 ## P2
 
-### 6. Real data ingestion for alpha
+### 6. Run live data ingestion for alpha
 - Nothing fetches fresh data: the run uses today's Supabase rows, then `alpha/raw_screener.csv`. `app/ingest.py` is not called anywhere.
 - **Fixed in `ingest.py`:** `hv_30d` is now computed from 3 months of price history (30-day realised volatility); NaN/inf become null before the push; Supabase connects only when pushing; the universe default is 100 tickers (`INGEST_MAX_TICKERS`); an empty yfinance result no longer crashes. Tests are in `alpha/tests/test_ingest.py`.
 - **Fixed (free version):** the missing Polygon/FMP fetchers are replaced by `alpha/app/data_sources/free_metrics.py`, which builds every screener column from yfinance with no key (option volume, open interest, spread %, ATM IV from the expiry nearest 30 days, ATR, trend, earnings, short interest, sector, market cap). `IV Rank` is a proxy (1-year percentile of 30-day realised vol); `Quality Score` is left empty (shown in `Data Gaps`). `INGEST_LIVE=1` makes `main.py` use it as the first data source; if it fails the run falls back to Supabase, CSV, then stops. Checked live on SOFI.
@@ -80,48 +101,43 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - **Still open:** Polygon, FMP and Massive are not used; add them only if you pick a paid source. **Decided: stay on free yfinance data**, and `alpha-daily-run.yml` now sets `INGEST_LIVE=1`. Run the workflow once by hand and read the log (V18, V21) before trusting the schedule. A paid source can be added later (record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
 - Done when: the scheduled run produces today's rows without a manually updated CSV.
 
-### 7. Clean up old duplicate rows in Supabase
+### 7. Remove old duplicate rows in Supabase
 - Earlier runs on the CSV/demo path stored timestamped dates and accumulated duplicates. The pipeline no longer wipes or duplicates anything (it adds new tickers and updates changed rows for the day), so existing duplicates stay until you remove them.
 - **You:** run the tables `ticker_universe` and `alpha_state` from `alpha/app/supabase_schema.sql` in Supabase (new). Then run `alpha/scripts/dedupe_duplicates.sql` step by step in the SQL editor: it previews the surplus rows, saves them in `dup_backup_*` tables, deletes them (newest row per day and ticker is kept), trims legacy timestamped dates and adds unique indexes. Do this BEFORE the first protected run if you can; the SQL editor is not blocked by the code guard.
 - After the first complete run the data is protected: `reset_and_run.py` and `clear_all_tables()` refuse to run (`ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND` overrides on purpose). `clear_tables.sql` no longer truncates.
 - Not guarded: a manual `TRUNCATE` in the Supabase SQL editor. A database trigger could block that too; say if you want it.
 - Done when: each table has one row per ticker per day.
 
-### 8. Protect the Streamlit dashboard
+### 8. Password-protect the Streamlit dashboard
 - It uses the service-role key and has no login, so anyone with the URL can see the data.
 - Options: make the Streamlit app private (viewer auth), or use the anon key with a read-only RLS policy.
 - Done when: an unauthenticated visitor cannot read the data.
 
-### 10. Frontend session renewal
+### 10. Frontend session renewal (refresh token)
 - **Fixed:** after a reload the user is restored from `/auth/me`; a bad `VITE_API_URL` no longer crashes the app at import time.
 - **Open:** the refresh token is never used, so the session ends after about an hour (Supabase's default) and you are sent to the login page. Renewing needs the refresh token stored and a retry-on-401, which should be written and tested against a real Supabase login (item 5).
 - The access token is kept in `localStorage`; that is acceptable for personal use, but any XSS would expose it.
 - Done when: the session renews without a new login, or you accept the hourly login.
 
-### 11. Backend hardening
+### 11. Set `CORS_ORIGINS` on Render
 - **Fixed:** `/auth/refresh` now takes the refresh token in the request body (a URL can end up in logs); CORS no longer combines `*` with credentials (credentials only for explicit origins) and logs a warning when `*` is used outside development.
 - **Open, set on Render:** `CORS_ORIGINS` to your frontend URL (the default is still `*`).
 - **Fixed:** `market.py` now reads quotes through yfinance (Yahoo's v7 endpoint returned 401); the fallback is still labelled `source`.
 - **Fixed:** `render.yaml` now uses `plan: free` and no longer sets the unused `APP_ENV`.
 - Done when: `CORS_ORIGINS` is set in production and the Dashboard ticker shows `live` on a deployed run.
 
-### 17. Close the doc-vs-code gaps
+### 17. Close the docs-vs-code gaps
 - See [DOC-CODE-GAPS.md](DOC-CODE-GAPS.md). The stale facts were fixed; what remains is documented-but-unbuilt functionality (push or email alerts, `/auth/profile`, screener search endpoints, rate limiting, caching, scheduler scripts, the `shared/` folder).
 - For each row decide: build it, or change the doc to match; then delete the row.
 - Done when: `DOC-CODE-GAPS.md` is empty.
 
-### 18. Table-name collisions between alpha and backend
+### 18. Resolve alpha and backend table-name collisions
 - `alpha/app/supabase_schema.sql` defines `trades` and `audit_log` with different columns than the backend's `trades` (migration 002). In one Supabase project whichever is created first wins and the other silently breaks. The new backend audit table was named `audit_events` to avoid the second clash.
 - **Fixed by renaming:** alpha's tables are now `alpha_trades` and `alpha_audit_log` (schema, `insert_trades` and the connection test); documented in `ALPHA.md`. Alpha's other tables have no backend counterpart.
 - **You:** run the new sections of `alpha/app/supabase_schema.sql`. If you ever created alpha's old `trades` or `audit_log` in a project shared with the backend, check which version of `trades` you actually have (the backend's has `portfolio_id` and `user_id`).
 - Done when: the schema is applied and the backend's `trades` is the backend's version.
 
-### 19. Check the gate against real market data
-- **Done on a Saturday (2026-11-14):** 14 symbols, regime, option liquidity, sectors, chains and scenarios were run through the real yfinance providers; results are in `VALIDATION.md` ("Live-data results") and the findings are item 25. The gate blocked and cleared for the right reasons, and bid/ask were present rather than 0.
-- **Still to do:** repeat the option checks on a weekday during market hours and in pre-market, when bid/ask can be 0 and would block every option trade ("could not verify"). If that is common, consider a better data source (a paid API is allowed; record it in `../BUSINESS/03-FINANCIAL-MODEL.md`).
-- Done when: the weekday check shows typical symbols pass or fail for the right reasons (Validation V15).
-
-### 20. Confirm the rule assumptions
+### 20. Confirm Phase 2 rule assumptions (gate, regime, sizing)
 - The docs gave no numbers for several rules, so defaults were chosen. They are listed in `../BUSINESS/05-IMPLEMENTATION-STATUS.md` ("Phase 2 assumptions"). Confirm or change each:
   - [ ] **Market "down"** (BR-010): SPY closes below its 200-day average.
   - [ ] **Regime floor** (BR-015): a score below 25 blocks all new entries; 25–40 (DEFENSIVE) still allows Base-layer trades.
@@ -132,18 +148,13 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
   - [ ] **Back-dated entries** (more than 1 day old) skip the gate.
 - Done when: each box is ticked (accepted) or a change has been made.
 
-### 21. Rule thresholds as Settings
+### 21. Verify rule thresholds as user Settings (FR-830)
 - **Built:** Settings now has a "Rule thresholds" section with 10 values (spread, open interest, market cap, earnings window, capital-at-risk, sector and net-delta limits, alert Watch and Warning days, assignment delta). Defaults are unchanged. Each has an allowed range; loosening a safety rule is allowed and shows a warning; every change is audit-logged; "Reset to defaults" clears them. Stored in `user_settings.thresholds` (migration 011).
 - **Not configurable yet:** regime boundaries (40/70) and floor (25), the profit and loss alert levels, and the Base-layer $10B market cap (BR-042).
 - **You:** apply `011_rule_thresholds.sql` in Supabase (it is additive; the down file drops the column), then change one value in Settings and check the gate and the audit log react (Validation V19). If you want the open-interest rule lower for weekly options (item 25), you can now set it there.
 - Done when: V19 passes on the real database.
 
-### 22. Band usage endpoint differs from the plan
-- The plan said `GET /portfolio/{id}/bands`; it was built as `GET /portfolio/bands` because the band caps apply to the whole account, not to one portfolio. The Sizing page and the status docs use the account-wide version.
-- Decide: keep it account-wide (then nothing to do), or also offer a per-portfolio view.
-- Done when: the choice is confirmed, or a per-portfolio endpoint exists.
-
-### 23. Phase 3 behaviour to confirm
+### 23. Confirm Phase 3 behaviour (alerts, P&L x100)
 - **Option P&L is now x100** (contract multiplier). Earlier it was understated 100x. Check one real trade against your broker. Trades already stored are not changed, only how P&L is computed.
 - Alert thresholds (7/3 days, delta 0.30/0.50/0.70, profit 50%/80%, stop-loss multiples, regime floor 25) are listed in `../BUSINESS/05-IMPLEMENTATION-STATUS.md` ("Phase 3 assumptions"). Confirm or change each, then decide whether they should move into Settings (same question as item 21).
 - Roll and Hedge are suggestions only: nothing is placed, and no roll candidate is computed (smart rolling is Planned).
@@ -151,7 +162,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - Weekly Picks need `weekly_picks` rows from `scheduler/scripts/generate_picks.py`; until it runs the page is empty.
 - Done when: the thresholds are confirmed and the P&L figure is checked (Validation V16).
 
-### 24. Phase 4 behaviour to confirm
+### 24. Confirm Phase 4 behaviour (limits, matrix, EV)
 - **Limits are my defaults** (see `../BUSINESS/05-IMPLEMENTATION-STATUS.md`, "Phase 4 assumptions"): total capital at risk 50% of equity (blocks new entries), sector 25% and net delta 100% of equity (reported only). Confirm or change each, then decide whether they belong in Settings (same question as items 21 and 23).
   - [ ] Total risk limit 50% (blocks)  - [ ] Sector limit 25%  - [ ] Net delta limit 100%
   - [ ] The strategy suitability table (`backend/app/domain/strategy_matrix.py`) matches how you want to trade each strategy per regime.
@@ -163,31 +174,22 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - **Bundle size:** the production build is one JS file over 500 kB (recharts). Code-split the chart pages with `React.lazy` if load time matters.
 - Done when: the thresholds are confirmed and the pages have been checked with real positions (Validation V17).
 
-### 25. Live-data findings (checked 2026-11-14, a Saturday, so quotes were Friday's close)
-- **Fixed:** the chain loader fetched only the first 3 expirations, so for AAPL (Mon/Wed/Fri weeklies) every contract expired within 6 days and the Option Chain page and the screener's 30-day window found nothing. It now picks up to 8 expirations spread across the window (default 90 days; the screener uses its own `expiry_days_max`).
-- **Fixed:** one contract with a missing volume or open interest (NaN) made `int(NaN)` raise and dropped its whole expiry; NaN also leaked into JSON. Parsing is now NaN-safe, and contracts with no implied volatility are skipped instead of being given an invented 0.3.
-- **Open, decide:** the open-interest minimum of 500 (BR-018) blocks weekly options. The ATM puts of the 30-day weekly (11 Dec) had OI 314 (AAPL), 255 (SPY) and 191 (MSFT), while the monthly (18 Dec) has tens of thousands. Either keep the rule (trade monthlies) or lower it; you can now change it in Settings (item 21).
-- **Open, accept or change:** when yfinance gives only a past earnings date (Ford: 2026-10-28), BR-020 blocks with "could not verify the next earnings date". That is the intended fail-safe, but it blocks every trade in such symbols until the date updates.
-- **Not yet checked:** a weekday, during market hours and in pre-market, when bid/ask can be 0. Repeat the V15 option checks then.
-- Cosmetic: yfinance logs HTTP 404 for SPY/QQQ fundamentals (ETFs have none); the gate handles ETFs correctly.
-- Done when: the OI rule is decided and the weekday check is done (Validation V15).
-
 ## P3
 
-### 12. Spec and implementation mismatches
+### 12. Resolve spec vs implementation mismatches
 - The older `/regime/{symbol}` endpoint (bull/bear/ranging from a 30-day return) still exists next to the new 0–100 score (`/regime/score`); decide whether to keep or remove it.
 - Alpha bands A–E are quality tiers by score; the docs define them as capital-allocation buckets with 30/25/20/15/10% caps.
 - Done: the dead `alpha/app/business_logic.py` was deleted.
 - Done when: docs and code agree, or the docs are updated to match.
 
-### 13. Alpha data robustness
+### 13. Harden alpha data handling
 - **Fixed:** `compute_option_score` no longer raises on `None`/NaN/bad values; a missing input earns no point and is named in a new `Data Gaps` column (it shows in Sheets; it is not stored in Supabase). Decide whether rows with gaps should be excluded from the watchlist or flagged in the dashboard.
 - **Fixed:** the Sheets push now uses `RAW` (no formula injection), clears the whole sheet, grows the grid for more than 26 columns or 500 rows, writes blanks instead of `nan`, and no longer hides a failed clear. Tests: `alpha/tests/test_sheets.py` (fake API). The real push is still a manual check (needs your Sheets key).
 - **Fixed:** the unused `app/secrets_loader.py` was deleted.
 - `alpha/.env.example` exists locally but is not tracked in git, while the README tells people to copy it. Commit it (without secrets) or fix the README.
 - Done when: bad inputs are rejected or reported, not scored as zero.
 
-### 14. Test coverage
+### 14. Fill test coverage gaps
 - Frontend has 113 unit tests, backend 382, alpha 36 (Active Holdings, Active Trades and the auth store are now covered). The Greeks, Screener and Portfolio pages are still thin.
 - CI now fails on test failures (it used to swallow them with `|| echo`); confirm the first run on GitHub is green.
 - `mypy` is blocked by a Windows Application Control policy on this machine; run it in CI or another environment.
@@ -195,20 +197,20 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - No backend test hits real Supabase.
 - Done when: key flows (login, add/close trade, screener) have frontend tests and mypy runs somewhere.
 
-### 15. Leftovers from the plan and mobile removal
+### 15. Remove leftovers of the dropped PRO plan and mobile app
 - `mobile/` still references `subscription_plan` (auth store, settings screen); deferred, but it will not match the API.
 - Doc bodies still contain optional paid examples (`render.yaml` with `plan: standard`, the ~$84 cost table, SendGrid scripts) under a scope banner.
 - Done: `backend/render.yaml` uses the free plan and no unused `APP_ENV`. `vercel.json` and the other workflows (`fetch-market-data`, `calculate-greeks`, `generate-weekly-picks`) are not yet reviewed for free-tier minute use.
 - Existing Supabase auth users may still carry a `subscription_plan` in their metadata (ignored, harmless).
 - Done when: configs match the free-tier defaults in `../BUSINESS/03-FINANCIAL-MODEL.md`.
 
-### 16. Repository hygiene
+### 16. Repository cleanup
 - **Unexplained revert (2026-11-14, 14:26):** `backend/app/api/v1/endpoints/portfolio.py` and `trades.py` were overwritten in the working tree with the pre-Phase-1 in-memory versions (the backend then failed to import). It was not a commit; something outside the session rewrote them. They were restored from `HEAD` and the copies kept in the session scratchpad. If it recurs, check editor extensions, other AI tools, sync clients and any `git checkout`/stash done on an old commit. A `git status` before each commit catches it.
 - `.mcp.json` GitHub server fails to connect ("Incompatible auth server: does not support dynamic client registration").
 - Confirm `alpha/service_account.json` is git-ignored (it exists locally; only `service_account.example.json` should be tracked).
 - Done when: the MCP server connects or is removed, and the credential file is confirmed ignored.
 
-### 26. Possible real secret in `alpha/.env.example`
-- **Fixed in the repo:** `alpha/.env.example` is now a placeholder template and `.gitignore` re-allows it (`!.env.example`), so it can be committed. The key was never in git history (only the placeholder `service_account.example.json` is tracked). The real key remains in the ignored local file `alpha/service_account.json`.
-- **You (the part that matters):** the key may also have appeared in an earlier tool output of this Claude Code session's local transcript, so treat it as exposed. In Google Cloud Console: IAM and Admin, Service Accounts, the account, Keys: add a new key (JSON), save it as `alpha/service_account.json` (ignored by git), then delete the old key. If you use the `GOOGLE_SERVICE_ACCOUNT_JSON` GitHub secret, update it with the new JSON.
-- Done when: the old key is deleted in Google Cloud and the new one works (run the Sheets push once, V18).
+### 22. Decide the band usage endpoint shape
+- The plan said `GET /portfolio/{id}/bands`; it was built as `GET /portfolio/bands` because the band caps apply to the whole account, not to one portfolio. The Sizing page and the status docs use the account-wide version.
+- Decide: keep it account-wide (then nothing to do), or also offer a per-portfolio view.
+- Done when: the choice is confirmed, or a per-portfolio endpoint exists.

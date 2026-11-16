@@ -8,7 +8,7 @@
 
 ## Vision
 
-A rules-driven options-selling analytics tool for one trader: screen, score, gate and track trades under a regime-aware risk framework, on free tiers by default.
+A rules-driven stock and options trading system (analysis and decision support) for one trader: screen, score, gate and track trades under a regime-aware risk framework, on free tiers by default.
 
 **Success measures**
 - The daily pipeline runs reliably and data is fresh.

@@ -7,7 +7,7 @@ Fetches today's screener metrics from yfinance (no API key) through
 
 The universe is capped (``INGEST_MAX_TICKERS``, default 100) so a run fits free tiers. Polygon,
 FMP and Massive are not used here; add them later if a paid source is chosen
-(docs/TODO/PENDING.md item 6).
+(docs/TODO/PENDING-WORK.md item 6).
 """
 
 import os

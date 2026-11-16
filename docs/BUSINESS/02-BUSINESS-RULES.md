@@ -4,7 +4,7 @@
 
 ## 1. Rule Framework
 
-StrideAlytics centers around executable business rules that enforce safe option-selling behavior, gate risk, and support decision transparency. Rules are grouped into:
+StrideAlytics centers around executable business rules that enforce safe stock and options trading behavior, gate risk, and support decision transparency. Rules are grouped into:
 
 - Access and security
 - Strategy and trade decision rules

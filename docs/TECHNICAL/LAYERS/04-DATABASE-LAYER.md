@@ -519,7 +519,7 @@ Migration `007_persistence_logs.sql` (down file included) added what the backend
 
 **Append-only logs.** `signal_log` and `audit_events` are protected in two layers: RLS gives the owner only SELECT and INSERT (no UPDATE/DELETE policies), and a trigger (`prevent_log_mutation`) raises on UPDATE, DELETE and TRUNCATE for every role. They deliberately have no foreign key to `users`, so deleting a user neither deletes nor is blocked by history. The application adds a third guard (`ImmutableRecordError`).
 
-**Name collisions.** The alpha pipeline's `supabase_schema.sql` also defines tables named `trades` and `audit_log` with different columns. If both are created in one Supabase project they clash. The new audit table is therefore called `audit_events`; the `trades` clash predates this migration (see `docs/TODO/PENDING.md`).
+**Name collisions.** The alpha pipeline's `supabase_schema.sql` also defines tables named `trades` and `audit_log` with different columns. If both are created in one Supabase project they clash. The new audit table is therefore called `audit_events`; the `trades` clash predates this migration (see `docs/TODO/PENDING-WORK.md`).
 
 **Dev/test database.** The backend uses PostgreSQL when `DATABASE_URL` is set and an in-memory SQLite database otherwise (data is lost on restart; a warning is logged). The ORM models define the schema for SQLite; the `.sql` migrations are the source of truth for PostgreSQL, so keep the two in step.
 

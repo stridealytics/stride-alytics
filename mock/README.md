@@ -1,6 +1,6 @@
 # StrideAlytics — Platform Mock
 
-A comprehensive mock implementation of the StrideAlytics Options Selling Platform for frontend development, testing, and demonstration purposes.
+A comprehensive mock implementation of the StrideAlytics Stock and Options Trading System for frontend development, testing, and demonstration purposes.
 
 ## Directory Structure
 

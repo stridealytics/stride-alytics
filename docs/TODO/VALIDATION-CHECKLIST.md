@@ -1,6 +1,6 @@
 # Validation checklist
 
-Run the relevant checks before deleting an item from [PENDING.md](PENDING.md).
+Run the relevant checks before deleting an item from [PENDING-WORK.md](PENDING-WORK.md).
 Delete a check once the thing it covers is permanently automated in CI.
 
 ## Automated (run after any code change)
@@ -70,17 +70,17 @@ uv run ruff check . && uv run black --check .
 - Reload the browser: the sidebar still shows your email and Settings shows your account.
 - Leave the app open past token expiry: you are not silently logged out (or you are sent to login cleanly).
 
-### V11. Backup workflow (new)
+### V11. Backup workflow
 - Add repo secrets `BACKUP_DATABASE_URL` and `BACKUP_PASSPHRASE`, then Actions → "Database Backup" → Run workflow.
 - The job is green and a `db-backup` artifact with a `.sql.gz.gpg` file appears.
 - **Restore test (once):** download it, then `gpg --decrypt <file> | gunzip | psql "<throwaway database URL>"` recreates your tables and rows.
 - If the install step fails on the runner (PGDG repo, `postgresql-client-17`), adjust the step; the workflow has not been run yet.
 
-### V12. Health endpoint and schedule (new)
+### V12. Health endpoint and schedule
 - `GET https://<your-api>/health` returns 200 without a token; Render shows the service as healthy.
 - `health-check.yml` is scheduled every 6 hours (Actions → Health Checks → Run workflow works).
 
-### V13. Phase 1 on real PostgreSQL (new)
+### V13. Phase 1 on real PostgreSQL
 - **Done on local PostgreSQL 16 (2026-11-14):** migrations 001-010 apply, down files 010-006 roll back and re-apply, smoke test 11/11, full backend suite passes. **Still to do on Supabase itself** (below), where `auth.uid()`, roles and RLS are real.
 - Throwaway Supabase project: apply migrations 001–007 (and the 007 down file once, then 007 again).
 - `cd backend && SMOKE_DB_URL=<throwaway url> uv run python scripts/smoke_db.py --disposable` prints all checks as PASS, including "UPDATE/DELETE/TRUNCATE on audit_events and signal_log is rejected". (Not yet run: SQLite cannot test the triggers.)
@@ -88,10 +88,10 @@ uv run ruff check . && uv run black --check .
 - A second account cannot see the first account's portfolios, trades, watchlists, settings or logs.
 - The Watchlist, Settings and Signal & Audit Log pages work with a real login; Export CSV downloads open correctly in a spreadsheet (a cell starting with `=` shows as text).
 
-### V14. CI (new)
+### V14. CI
 - Push a branch: all jobs (backend, alpha, frontend, database, scheduler) are green. Introduce a failing backend test on a scratch branch to confirm the job now turns red.
 
-### V15. Phase 2: gate, regime and sizing with real data (new)
+### V15. Phase 2: gate, regime and sizing with real data
 - Apply migration 008, then open the Regime page: a score appears (not "unavailable"), the history table gains today's row, and a second refresh does not duplicate it.
 - Dashboard shows CLEAR TO TRADE or BLOCKED with reasons that match the market (SPY above or below its 200-day average).
 - "Check gate" on 10–15 real symbols (for example AAPL, MSFT, SPY, a small cap with weak options): each result's reasons match what you see on the broker (spread, open interest, earnings date, market cap). Note any symbol where data is "could not verify".
@@ -103,7 +103,7 @@ uv run ruff check . && uv run black --check .
 - Run "Check gate" once **during** market hours and once **after hours**: after hours, bid/ask and open interest are often 0 or missing, which blocks option trades with "could not verify". Note which behaviour you get.
 - `GET /portfolio/bands` (the account-wide band usage on the Sizing page) shows exposure rising after you add an open trade with a band and capital at risk.
 
-### V16. Phase 3: alerts, Home hub and pages (new)
+### V16. Phase 3: alerts, Home hub and pages
 - Apply migration 009. Open Exit Alerts with at least one open option trade: P&L, delta, theta and DTE are shown and match your broker (options P&L is now x100; compare one trade by hand).
 - Add a short put near the money or deep in the money: a Critical "assignment alarm" appears, the sidebar badge shows the count, and **Acknowledge** clears the badge and the banner. Reload: it stays acknowledged. Close the trade: the history row shows Resolved.
 - Open a trade for a symbol with no quote (or run with the data provider down): the position shows a "no market data" warning, and the master gate blocks new trades (BR-011 fail-safe).
@@ -113,7 +113,7 @@ uv run ruff check . && uv run black --check .
 - Weekly Picks: empty until the "Generate Weekly Picks" workflow has run; then each pick's "Check gate" matches Home's gate.
 - Tune check: the alert thresholds are constants (see the Phase 3 assumptions); confirm they fit how you trade.
 
-### V17. Phase 4: risk, scenarios, matrix, chain and charts (new)
+### V17. Phase 4: risk, scenarios, matrix, chain and charts
 - Apply migration 010. With a few open trades in different sectors, open the Heat Dashboard: margin %, net delta, sector bars and band usage agree with Portfolio and Sizing (check one sum by hand). A sector over 25% of equity shows a red bar and a breach line.
 - Push capital at risk above 50% of equity (one large `risk_amount`): the master gate turns BLOCKED with BR-081 and a new trade is refused (409); close it and the gate clears.
 - Scenarios: run "Market -10%" on a short put. The change is a loss, "Two weeks pass" is a gain, and a zero shock shows no change. Compare one position with your broker's risk tool. A position with no price is listed as "Not priced", not in the total. Save a scenario, reload, run it from the saved list, delete it.

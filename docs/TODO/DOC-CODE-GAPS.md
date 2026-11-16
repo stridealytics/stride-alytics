@@ -17,7 +17,7 @@ What remains is documented-but-not-built functionality. For each row decide **bu
 
 ## A1. Business rules and functional requirements
 
-Documented but not (fully) built. Status per requirement is in `../BUSINESS/05-IMPLEMENTATION-STATUS.md`; open decisions are in [PENDING.md](PENDING.md).
+Documented but not (fully) built. Status per requirement is in `../BUSINESS/05-IMPLEMENTATION-STATUS.md`; open decisions are in [PENDING-WORK.md](PENDING-WORK.md).
 
 | Requirement | Status in code | Tracked in |
 |---|---|---|
