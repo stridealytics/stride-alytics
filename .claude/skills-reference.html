@@ -1,0 +1,530 @@
+<title>Skills & Agents</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* Layout: two-tier developer reference — domain agents + technical skills */
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-2: #21262d;
+  --border: #30363d;
+  --fg: #e6edf3;
+  --fg-muted: #8b949e;
+  --fg-subtle: #484f58;
+  --agent: #3fb950;
+  --agent-bg: rgba(63,185,80,0.08);
+  --agent-border: rgba(63,185,80,0.2);
+  --skill: #58a6ff;
+  --skill-bg: rgba(88,166,255,0.08);
+  --skill-border: rgba(88,166,255,0.2);
+  --wf: #d29922;
+  --wf-bg: rgba(210,153,34,0.08);
+  --wf-border: rgba(210,153,34,0.2);
+  --r: 8px;
+  --r-sm: 4px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f8fa; --surface: #fff; --surface-2: #f6f8fa;
+    --border: #d0d7de; --fg: #1f2328; --fg-muted: #636c76; --fg-subtle: #afb8c1;
+    --agent: #1a7f37; --agent-bg: #dafbe1; --agent-border: #aef2bd;
+    --skill: #0969da; --skill-bg: #ddf4ff; --skill-border: #aad3f5;
+    --wf: #9a6700; --wf-bg: #fff8c5; --wf-border: #f5d64c;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f8fa; --surface: #fff; --surface-2: #f6f8fa;
+  --border: #d0d7de; --fg: #1f2328; --fg-muted: #636c76; --fg-subtle: #afb8c1;
+  --agent: #1a7f37; --agent-bg: #dafbe1; --agent-border: #aef2bd;
+  --skill: #0969da; --skill-bg: #ddf4ff; --skill-border: #aad3f5;
+  --wf: #9a6700; --wf-bg: #fff8c5; --wf-border: #f5d64c;
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.6;
+  margin: 0; padding-block: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.container { max-width: 1120px; margin: 0 auto; }
+
+/* Header */
+.hdr { margin-bottom: 32px; }
+.hdr h1 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700;
+  margin: 0 0 6px; color: var(--fg);
+}
+.hdr p { color: var(--fg-muted); margin: 0 0 18px; max-width: 560px; font-size: 13px; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.lbadge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.03em;
+}
+.lbadge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.lbadge.a { background: var(--agent-bg); color: var(--agent); border: 1px solid var(--agent-border); }
+.lbadge.s { background: var(--skill-bg); color: var(--skill); border: 1px solid var(--skill-border); }
+.lbadge.w { background: var(--wf-bg); color: var(--wf); border: 1px solid var(--wf-border); }
+
+/* Search */
+.search-wrap { margin-bottom: 28px; }
+.search {
+  width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 14px; font-size: 13px; color: var(--fg);
+  font-family: 'Inter', sans-serif; outline: none; display: block;
+}
+.search:focus { border-color: var(--skill); }
+.search::placeholder { color: var(--fg-subtle); }
+
+/* Section */
+.section { margin-bottom: 36px; }
+.sec-hdr {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.sec-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; color: var(--fg); margin: 0; }
+.sec-count {
+  font-size: 11px; color: var(--fg-muted); background: var(--surface-2);
+  padding: 2px 8px; border-radius: 10px; font-variant-numeric: tabular-nums;
+}
+.area-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fg-subtle); margin: 18px 0 8px; font-family: 'Space Grotesk', sans-serif;
+}
+.area-label:first-child { margin-top: 0; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 12px 14px; transition: border-color 0.12s;
+}
+.card:hover { border-color: var(--fg-subtle); }
+.card.a { border-left: 3px solid var(--agent); }
+.card.s { border-left: 3px solid var(--skill); }
+.card-name {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500;
+  margin: 0 0 4px; display: block;
+}
+.card.a .card-name { color: var(--agent); }
+.card.s .card-name { color: var(--skill); }
+.card-desc { font-size: 12px; color: var(--fg-muted); margin: 0; line-height: 1.5; }
+
+/* Skills compact grid */
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.skill-row {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--skill); border-radius: var(--r); padding: 10px 12px;
+  transition: border-color 0.12s;
+}
+.skill-row:hover { border-color: var(--fg-subtle); border-left-color: var(--skill); }
+.skill-name {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--skill); margin: 0;
+}
+.skill-tag {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-subtle); font-family: 'Space Grotesk', sans-serif;
+}
+.skill-desc { font-size: 11px; color: var(--fg-muted); line-height: 1.45; }
+
+/* Workflows */
+.wf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px; }
+.wf-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px;
+}
+.wf-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--fg); margin: 0 0 10px; letter-spacing: 0.02em;
+}
+.wf-chain { display: flex; flex-direction: column; gap: 4px; }
+.ci {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 5px 9px; border-radius: var(--r-sm);
+}
+.ci.a { background: var(--agent-bg); color: var(--agent); border: 1px solid var(--agent-border); }
+.ci.s { background: var(--skill-bg); color: var(--skill); border: 1px solid var(--skill-border); }
+.ci .role { font-size: 9px; opacity: 0.65; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.arrow { color: var(--fg-subtle); font-size: 10px; padding-left: 9px; font-family: 'JetBrains Mono', monospace; opacity: 0.6; }
+
+/* Theme toggle */
+.theme-btn {
+  position: fixed; top: 16px;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 20px;
+  padding: 5px 12px; font-size: 11px; color: var(--fg-muted); cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; z-index: 10; font-weight: 500;
+}
+.theme-btn:hover { color: var(--fg); border-color: var(--fg-subtle); }
+
+.hidden { display: none !important; }
+
+@media (max-width: 540px) {
+  .cards, .wf-grid, .skills-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<button class="theme-btn" id="themeBtn">☀ Light</button>
+
+<div class="container">
+  <div class="hdr">
+    <h1>Skills &amp; Agents</h1>
+    <p>Two tiers work together. Domain agents know the trading rules and architecture. Technical skills know how to implement them well.</p>
+    <div class="legend">
+      <span class="lbadge a">Domain Agents · 20 · .claude/agents/</span>
+      <span class="lbadge s">Technical Skills · 12 active · fullstack-dev-skills plugin</span>
+      <span class="lbadge w">Workflow Combos · 8</span>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <input class="search" id="search" type="search" placeholder="Filter agents, skills, or workflows…" autocomplete="off">
+  </div>
+
+  <!-- DOMAIN AGENTS -->
+  <section class="section" id="sec-agents">
+    <div class="sec-hdr">
+      <h2 class="sec-title">Domain Agents</h2>
+      <span class="sec-count">20 agents</span>
+    </div>
+
+    <div class="area-label">Screening &amp; Data</div>
+    <div class="cards">
+      <div class="card a" data-search="option-screener-architect screening filters do-not-trade alpha pipeline band">
+        <span class="card-name">option-screener-architect</span>
+        <p class="card-desc">Screening logic, filters, Do-Not-Trade rules (spread &gt;10%, OI &lt;500, MCap &lt;$2B, earnings 14d). Alpha pipeline order.</p>
+      </div>
+      <div class="card a" data-search="liquidity-inspector oi volume spread slippage fill">
+        <span class="card-name">liquidity-inspector</span>
+        <p class="card-desc">OI ≥500, bid/ask spread ≤10%, volume, slippage estimation, fill quality per leg.</p>
+      </div>
+      <div class="card a" data-search="earnings-risk-guardian 14 day buffer catalyst calendar earnings">
+        <span class="card-name">earnings-risk-guardian</span>
+        <p class="card-desc">14-day earnings buffer enforced. Guidance events, investor days, product launches. Missing date = blocked (fail-safe).</p>
+      </div>
+      <div class="card a" data-search="market-data-engineer yfinance polygon fmp data quality missing values">
+        <span class="card-name">market-data-engineer</span>
+        <p class="card-desc">yfinance → Polygon → FMP priority chain. Data quality, missing values, stale quotes, corporate actions.</p>
+      </div>
+      <div class="card a" data-search="technical-entry-expert support resistance atr rsi moving averages strike">
+        <span class="card-name">technical-entry-expert</span>
+        <p class="card-desc">Support/resistance, trend (SMA 50/200), ATR-based strike distance, RSI 14, strike selection rules.</p>
+      </div>
+      <div class="card a" data-search="volatility-analyst iv rank percentile hv term structure vega regime score">
+        <span class="card-name">volatility-analyst</span>
+        <p class="card-desc">IV rank/percentile, historical volatility, term structure, vega exposure, regime score (0–100).</p>
+      </div>
+    </div>
+
+    <div class="area-label">Strategy &amp; Risk</div>
+    <div class="cards">
+      <div class="card a" data-search="option-strategy-reviewer trade validation max profit risk assignment margin gate">
+        <span class="card-name">option-strategy-reviewer</span>
+        <p class="card-desc">Trade validation — max profit/risk, POP, assignment risk, margin impact. Gate checks BR-010–021.</p>
+      </div>
+      <div class="card a" data-search="wheel-strategy-expert csp covered call assignment progression annualized return">
+        <span class="card-name">wheel-strategy-expert</span>
+        <p class="card-desc">CSP → assignment → covered call progression. Annualized return, effective cost basis, wheel state transitions.</p>
+      </div>
+      <div class="card a" data-search="credit-spread-validator bull put bear call spread width rr ratio liquidity legs">
+        <span class="card-name">credit-spread-validator</span>
+        <p class="card-desc">Bull put / bear call spreads. Per-leg liquidity, spread width, R:R (target ≥1:3), same expiration enforcement.</p>
+      </div>
+      <div class="card a" data-search="assignment-risk-analyzer itm probability dividend early exercise pin risk">
+        <span class="card-name">assignment-risk-analyzer</span>
+        <p class="card-desc">ITM probability (delta proxy), dividend ex-date risk, early exercise likelihood, pin risk on expiration Friday.</p>
+      </div>
+      <div class="card a" data-search="risk-manager position sizing band caps base growth split correlation portfolio">
+        <span class="card-name">risk-manager</span>
+        <p class="card-desc">Position sizing, band caps (A=largest, E=smallest), Base/Growth split, Growth lock, correlation rule BR-013.</p>
+      </div>
+    </div>
+
+    <div class="area-label">Portfolio &amp; Records</div>
+    <div class="cards">
+      <div class="card a" data-search="trade-journal-auditor pl audit events signal log entry exit rationale">
+        <span class="card-name">trade-journal-auditor</span>
+        <p class="card-desc">P&amp;L tracking, audit_events/signal_log (append-only), entry/exit rationale, win rate, lessons learned.</p>
+      </div>
+      <div class="card a" data-search="backtest-engineer historical simulation win rate sharpe drawdown backtest">
+        <span class="card-name">backtest-engineer</span>
+        <p class="card-desc">Historical simulation, win rate, Sharpe/Sortino, max drawdown. Vectorized pandas, no lookahead bias.</p>
+      </div>
+    </div>
+
+    <div class="area-label">System &amp; Infrastructure</div>
+    <div class="cards">
+      <div class="card a" data-search="band-system-guardian band a b c d e assignment pipeline caps semantics">
+        <span class="card-name">band-system-guardian</span>
+        <p class="card-desc">Band A–E semantics (A=safest). assignBands → computeBandAnalysis → generateBandDashboard pipeline order.</p>
+      </div>
+      <div class="card a" data-search="dashboard-builder streamlit react band layout source label dashboard">
+        <span class="card-name">dashboard-builder</span>
+        <p class="card-desc">Streamlit alpha dashboard and React frontend. Band layout, source field labeling, cache conventions.</p>
+      </div>
+      <div class="card a" data-search="python-quant-developer vectorized pandas numpy typing unit tests no loops">
+        <span class="card-name">python-quant-developer</span>
+        <p class="card-desc">No loops where vectorization works. Strict typing, unit tests required, ruff + black (100 chars), uv.</p>
+      </div>
+      <div class="card a" data-search="database-architect migrations orm rls append only tables sqlite postgres">
+        <span class="card-name">database-architect</span>
+        <p class="card-desc">SQL migrations + ORM dual-change rule. RLS policies, append-only triggers, safety guards.</p>
+      </div>
+      <div class="card a" data-search="deployment-engineer render supabase github actions free tier environment">
+        <span class="card-name">deployment-engineer</span>
+        <p class="card-desc">Render (backend), Supabase free (~500 MB), GitHub Actions cron. Free-tier limits, env config.</p>
+      </div>
+      <div class="card a" data-search="security-reviewer jwt rls auth audit trail secrets permissions">
+        <span class="card-name">security-reviewer</span>
+        <p class="card-desc">JWT (HS256/ES256/RS256), RLS, dev-token gate, audit row in same transaction, secrets management.</p>
+      </div>
+      <div class="card a" data-search="principal-system-architect pre-merge review architecture cross-module final">
+        <span class="card-name">principal-system-architect</span>
+        <p class="card-desc">Pre-merge final reviewer. Architecture consistency, tech debt, scalability, security, free-tier impact.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECHNICAL SKILLS -->
+  <section class="section" id="sec-skills">
+    <div class="sec-hdr">
+      <h2 class="sec-title">Active Technical Skills</h2>
+      <span class="sec-count">12 of 67 · fullstack-dev-skills plugin</span>
+    </div>
+
+    <div class="area-label">Language</div>
+    <div class="skills-grid">
+      <div class="skill-row" data-search="python-pro python typing async performance">
+        <span class="skill-name">python-pro</span>
+        <span class="skill-tag">Language</span>
+        <span class="skill-desc">Typing, async, performance patterns. Triggers on: Python code, async def, type annotations.</span>
+      </div>
+      <div class="skill-row" data-search="pandas-pro dataframe vectorize time series aggregate">
+        <span class="skill-name">pandas-pro</span>
+        <span class="skill-tag">Language</span>
+        <span class="skill-desc">DataFrames, vectorized ops, time series. Triggers on: pandas, DataFrame, groupby, merge.</span>
+      </div>
+    </div>
+
+    <div class="area-label">Backend</div>
+    <div class="skills-grid">
+      <div class="skill-row" data-search="fastapi-expert fastapi pydantic async sqlalchemy jwt openapi">
+        <span class="skill-name">fastapi-expert</span>
+        <span class="skill-tag">Backend</span>
+        <span class="skill-desc">Async endpoints, Pydantic V2, async SQLAlchemy, JWT auth. Triggers on: FastAPI, Pydantic, REST API Python.</span>
+      </div>
+    </div>
+
+    <div class="area-label">Database</div>
+    <div class="skills-grid">
+      <div class="skill-row" data-search="postgres-pro postgresql rls replication supabase tuning">
+        <span class="skill-name">postgres-pro</span>
+        <span class="skill-tag">Database</span>
+        <span class="skill-desc">PostgreSQL tuning, RLS, replication, advanced features. Triggers on: PostgreSQL, Supabase, RLS policy.</span>
+      </div>
+      <div class="skill-row" data-search="sql-pro migrations window functions cte indexes query">
+        <span class="skill-name">sql-pro</span>
+        <span class="skill-tag">Database</span>
+        <span class="skill-desc">Migrations, window functions, CTEs, index design. Triggers on: SQL, migration, window function.</span>
+      </div>
+    </div>
+
+    <div class="area-label">Frontend</div>
+    <div class="skills-grid">
+      <div class="skill-row" data-search="react-expert react components hooks tanstack query zustand">
+        <span class="skill-name">react-expert</span>
+        <span class="skill-tag">Frontend</span>
+        <span class="skill-desc">React 19, hooks, TanStack Query caching, component patterns. Triggers on: React, useState, useQuery.</span>
+      </div>
+      <div class="skill-row" data-search="typescript-pro typescript generics type guards strict ts">
+        <span class="skill-name">typescript-pro</span>
+        <span class="skill-tag">Frontend</span>
+        <span class="skill-desc">Generics, type guards, strict TS, advanced patterns. Triggers on: TypeScript, interface, generic type.</span>
+      </div>
+    </div>
+
+    <div class="area-label">Quality &amp; Ops</div>
+    <div class="skills-grid">
+      <div class="skill-row" data-search="test-master pytest vitest testing strategy unit integration">
+        <span class="skill-name">test-master</span>
+        <span class="skill-tag">Quality</span>
+        <span class="skill-desc">pytest + vitest strategy, unit/integration/E2E. Triggers on: test, pytest, vitest, test coverage.</span>
+      </div>
+      <div class="skill-row" data-search="security-reviewer sast auth dependency vulnerabilities owasp">
+        <span class="skill-name">security-reviewer</span>
+        <span class="skill-tag">Quality</span>
+        <span class="skill-desc">SAST, auth review, dependency vulns, OWASP. Triggers on: security, vulnerability, auth, CORS.</span>
+      </div>
+      <div class="skill-row" data-search="code-reviewer code review process quality">
+        <span class="skill-name">code-reviewer</span>
+        <span class="skill-tag">Quality</span>
+        <span class="skill-desc">Thorough code review process. Triggers on: review, code review, PR review.</span>
+      </div>
+      <div class="skill-row" data-search="debugging-wizard debug cross-language systematic diagnosis">
+        <span class="skill-name">debugging-wizard</span>
+        <span class="skill-tag">Quality</span>
+        <span class="skill-desc">Systematic cross-language debugging. Triggers on: bug, error, debugging, traceback, exception.</span>
+      </div>
+      <div class="skill-row" data-search="devops-engineer cicd github actions deployment pipeline">
+        <span class="skill-name">devops-engineer</span>
+        <span class="skill-tag">Ops</span>
+        <span class="skill-desc">CI/CD, GitHub Actions, deployment pipelines. Triggers on: CI, deploy, GitHub Actions, workflow.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKFLOW ROUTING -->
+  <section class="section" id="sec-workflows">
+    <div class="sec-hdr">
+      <h2 class="sec-title">Workflow Combos</h2>
+      <span class="sec-count">recommended stacks per task</span>
+    </div>
+    <div class="wf-grid">
+
+      <div class="wf-card" data-search="alpha pipeline screener change python pandas test">
+        <p class="wf-title">Alpha pipeline change</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>option-screener-architect</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>python-pro</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>pandas-pro</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>test-master</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="backend endpoint fastapi postgres security audit">
+        <p class="wf-title">New backend endpoint</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>option-strategy-reviewer</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>fastapi-expert</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>postgres-pro</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>security-reviewer</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="database migration orm rls postgres sql">
+        <p class="wf-title">Database migration</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>database-architect</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>postgres-pro</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>sql-pro</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="frontend react typescript dashboard band layout">
+        <p class="wf-title">Frontend feature</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>dashboard-builder</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>react-expert</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>typescript-pro</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="band system change guardian python test">
+        <p class="wf-title">Band system change</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>band-system-guardian</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>python-pro</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>test-master</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="scheduler ci devops github actions deployment python">
+        <p class="wf-title">Scheduler / CI change</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>deployment-engineer</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>devops-engineer</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>python-pro</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="bug investigation debug cross-language diagnosis">
+        <p class="wf-title">Bug investigation</p>
+        <div class="wf-chain">
+          <div class="ci s"><span class="role">skill</span>debugging-wizard</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>[relevant domain agent]</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="pre-merge review architecture security final principal">
+        <p class="wf-title">Pre-merge review</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>principal-system-architect</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>security-reviewer</div>
+          <div class="arrow">+</div>
+          <div class="ci s"><span class="role">skill</span>code-reviewer</div>
+        </div>
+      </div>
+
+      <div class="wf-card" data-search="new strategy type validation volatility risk spread">
+        <p class="wf-title">New strategy type</p>
+        <div class="wf-chain">
+          <div class="ci a"><span class="role">domain</span>option-strategy-reviewer</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>volatility-analyst</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>risk-manager</div>
+          <div class="arrow">+</div>
+          <div class="ci a"><span class="role">domain</span>credit-spread-validator</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<script>
+const btn = document.getElementById('themeBtn');
+const root = document.documentElement;
+let dark = true;
+
+try {
+  const saved = localStorage.getItem('skills-theme');
+  if (saved) { dark = saved === 'dark'; root.dataset.theme = saved; btn.textContent = dark ? '☀ Light' : '🌙 Dark'; }
+} catch(e){}
+
+btn.addEventListener('click', () => {
+  dark = !dark;
+  root.dataset.theme = dark ? 'dark' : 'light';
+  btn.textContent = dark ? '☀ Light' : '🌙 Dark';
+  try { localStorage.setItem('skills-theme', dark ? 'dark' : 'light'); } catch(e){}
+});
+
+const search = document.getElementById('search');
+const all = document.querySelectorAll('[data-search]');
+
+search.addEventListener('input', () => {
+  const q = search.value.toLowerCase().trim();
+  all.forEach(el => {
+    const match = !q || el.dataset.search.toLowerCase().includes(q) ||
+      el.textContent.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+  });
+  // Show section headers only if section has visible items
+  document.querySelectorAll('.section').forEach(sec => {
+    const visible = sec.querySelectorAll('[data-search]:not(.hidden)').length > 0;
+    sec.style.display = visible ? '' : (q ? 'none' : '');
+  });
+});
+</script>
