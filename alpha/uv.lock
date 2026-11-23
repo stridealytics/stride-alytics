@@ -1494,7 +1494,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0" },
     { name = "streamlit", specifier = ">=1.40.0" },
     { name = "supabase", specifier = ">=2.0.0" },
-    { name = "yfinance", specifier = ">=1.4.1" },
+    { name = "yfinance", specifier = ">=1.4.1,<2" },
 ]
 
 [package.metadata.requires-dev]

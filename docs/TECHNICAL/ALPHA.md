@@ -92,6 +92,9 @@ alpha/
 - **A Supabase write failure fails the run.** `main()` returns exit code 1.
 - **A Google Sheets failure** is reported as an alert but does not fail the run.
 - **Alerts** go to `SLACK_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL` when set (`app/utils/notify.py`); if neither is set the alert is only printed.
+- **Incomplete live fetch:** if more than `INGEST_MAX_FAIL_PCT` (default 20) percent of tickers fail in yfinance, the live fetch is treated as failed: an alert is sent and the run falls back to stored data.
+- **Empty index list:** if the S&P 500 or NASDAQ-100 scrape returns nothing, a warning and alert are sent. The stored universe is also capped at `INGEST_MAX_TICKERS` when ingesting, so a partial scrape cannot grow it past the limit.
+- **Unknown earnings date:** tickers scoring 6+ that are left off the weekly watchlist for this reason are counted in the log.
 - **Stale CSV:** if the CSV fallback is older than `MAX_CSV_AGE_DAYS` (default 3) a warning and alert are sent, because its values would be stamped with today's date.
 
 ---
@@ -225,7 +228,9 @@ It runs `uv run python app/main.py` (not plain `python`, which would not see the
 Required GitHub secrets: `SUPABASE_URL`, `SUPABASE_KEY`.
 Optional: `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`, `SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`.
 
-Note: the workflow does not run ingestion, so today's data must already be in Supabase or in `raw_screener.csv`.
+The workflow sets `INGEST_LIVE=1`, so each run fetches fresh metrics from yfinance (falling back to Supabase, then `raw_screener.csv`, if the live fetch fails).
+
+Known limitation (accepted): the run is before the US market opens, so it uses the previous session's close. Option volume, bid/ask spread and implied volatility from yfinance are often stale or zero at that time, so those fields are the least reliable. The rows are stamped with the run date. Moving the run after the close (e.g. 21:30 UTC) would improve them.
 
 ---
 

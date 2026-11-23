@@ -1,6 +1,6 @@
 """
 Retention job: keep the free Supabase database (500 MB) from filling up.
-Scheduled: weekly (Sunday), see .github/workflows/prune-data.yml.
+Scheduled: weekly (Sunday), see .github/workflows/weekly.yml.
 
 Deletes only data that is no longer useful:
   * ``options``            contracts whose expiry has passed
@@ -30,6 +30,19 @@ HISTORY_DAYS = int(os.getenv("HISTORY_RETENTION_DAYS", "180"))
 
 ALPHA_TABLES = ("daily_metrics", "option_scores", "bands", "weekly_watchlist")
 
+# A typo such as ALPHA_RETENTION_DAYS=0 would delete all history, so refuse values below this.
+MIN_RETENTION_DAYS = 30
+
+
+def retention_errors() -> list[str]:
+    """Names of the retention settings that are below ``MIN_RETENTION_DAYS``."""
+    settings = {
+        "ALPHA_RETENTION_DAYS": ALPHA_DAYS,
+        "PICKS_RETENTION_DAYS": PICKS_DAYS,
+        "HISTORY_RETENTION_DAYS": HISTORY_DAYS,
+    }
+    return [f"{k}={v}" for k, v in settings.items() if v < MIN_RETENTION_DAYS]
+
 
 def plan(today: date, now: datetime) -> list[tuple[str, str, str]]:
     """(table, column, ``lt.<cutoff>`` filter) for every prune rule."""
@@ -46,6 +59,13 @@ def plan(today: date, now: datetime) -> list[tuple[str, str, str]]:
 def main() -> int:
     if not SUPABASE_URL or not SUPABASE_KEY:
         print("SUPABASE_URL and SUPABASE_KEY are required", file=sys.stderr)
+        return 1
+    bad = retention_errors()
+    if bad:
+        print(
+            f"Refusing to prune: {', '.join(bad)} is below the {MIN_RETENTION_DAYS}-day minimum",
+            file=sys.stderr,
+        )
         return 1
     headers = {
         "apikey": SUPABASE_KEY,

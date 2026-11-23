@@ -159,7 +159,7 @@ Delete an item when it is done and validated (see [README](README.md)). Last upd
 - Alert thresholds (7/3 days, delta 0.30/0.50/0.70, profit 50%/80%, stop-loss multiples, regime floor 25) are listed in `../BUSINESS/05-IMPLEMENTATION-STATUS.md` ("Phase 3 assumptions"). Confirm or change each, then decide whether they should move into Settings (same question as item 21).
 - Roll and Hedge are suggestions only: nothing is placed, and no roll candidate is computed (smart rolling is Planned).
 - Alerts are computed when you open a page (60-second price cache), not pushed. Email or Slack alerts for exits would need the scheduler.
-- Weekly Picks need `weekly_picks` rows from `scheduler/scripts/generate_picks.py`; until it runs the page is empty.
+- Weekly Picks need `weekly_picks` rows from `scheduler/scripts/generate_picks.py`; until it runs the page is empty. That script only publishes alpha's latest `weekly_watchlist` (alpha is the single source of pick rules). It sets no strike, expiry, target or stop, so picks have no EV and sort last, by confidence, until a source for those exists. It fails when alpha's list is empty or older than `PICKS_MAX_LIST_AGE_DAYS` (default 5).
 - Done when: the thresholds are confirmed and the P&L figure is checked (Validation V16).
 
 ### 24. Confirm Phase 4 behaviour (limits, matrix, EV)

@@ -2,8 +2,8 @@
 Dynamic Ticker Universe Loader for the Alpha Stock and Options Screening Pipeline.
 
 Supports multiple sources:
-- S&P 500 constituents (Wikipedia scraping)
-- NASDAQ 100 constituents (Wikipedia scraping)
+- S&P 500 constituents (public index constituent lists, scraped)
+- NASDAQ 100 constituents (public index constituent lists, scraped)
 - Most active tickers (FMP API)
 - Custom watchlist (local CSV / Supabase)
 """
@@ -20,11 +20,15 @@ from app.config import config
 load_dotenv()
 
 
+HEADERS = {"User-Agent": "StrideAlytics-alpha/1.0 (personal screener; ticker list refresh)"}
+
+
 def get_sp500_tickers() -> list[str]:
-    """Fetch S&P 500 constituents from Wikipedia."""
+    """Fetch S&P 500 constituents from a public index constituent list (scraped)."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     try:
-        resp = requests.get(url, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         table = soup.find("table", {"id": "constituents"})
         df = pd.read_html(str(table))[0]
@@ -36,10 +40,11 @@ def get_sp500_tickers() -> list[str]:
 
 
 def get_nasdaq100_tickers() -> list[str]:
-    """Fetch NASDAQ 100 constituents from Wikipedia."""
+    """Fetch NASDAQ 100 constituents from a public index constituent list (scraped)."""
     url = "https://en.wikipedia.org/wiki/NASDAQ-100"
     try:
-        resp = requests.get(url, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         table = soup.find("table", {"id": "constituents"})
         df = pd.read_html(str(table))[0]
@@ -130,6 +135,12 @@ def load_tickers(
     seen = set()
     tickers = []
     for source_name, source_tickers in sources:
+        if not source_tickers and source_name in ("SP500", "NASDAQ100"):
+            # A scraped index list came back empty: the page changed or the site blocked us.
+            from app.utils.notify import send_alert
+
+            print(f"[WARNING] {source_name} ticker list is empty (fetch failed?)")
+            send_alert(f"Alpha: the {source_name} ticker list came back empty.")
         added = 0
         for t in source_tickers:
             if t not in seen:

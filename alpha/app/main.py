@@ -96,6 +96,7 @@ def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
             print("[WARNING] Live fetch returned no rows; falling back.")
         except Exception as e:
             print(f"[WARNING] Live fetch failed ({e}); falling back.")
+            send_alert(f"Alpha: live fetch failed ({e}); using stored data instead.")
 
     print("Loading data from Supabase...")
     df = load_from_supabase()

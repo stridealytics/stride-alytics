@@ -35,6 +35,9 @@ def load_from_supabase() -> pd.DataFrame:
         rename_map = {
             "ticker": "Ticker",
             "price": "Price",
+            "avg_volume_shares": "Avg Volume (Shares)",
+            "market_cap": "Market Cap",
+            "beta": "Beta",
             "option_volume": "Option Volume",
             "max_oi_near_exp": "Max OI (Near Exp)",
             "bid_ask_spread_pct": "Bid-Ask Spread %",

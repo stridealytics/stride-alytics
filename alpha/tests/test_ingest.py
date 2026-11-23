@@ -164,3 +164,66 @@ def test_main_uses_live_data_only_when_enabled_and_falls_back_on_failure(monkeyp
 
     monkeypatch.setattr(ingest, "run_ingestion_pipeline", boom)
     assert main._load_data(False)[0] == "supabase"  # falls back instead of failing the run
+
+
+def test_strategy_tag_reads_live_above_below_trend() -> None:
+    from app.screener.weekly_watchlist import _compute_strategy_tag as tag
+
+    def row(iv, trend):
+        return {"IV Rank (1y)": iv, "Trend (Above/Below 20/50/200 EMA)": trend}
+
+    assert tag(row(60, "Above 20 / Above 50 / Above 200")) == "Short Put / Bull Put Spread"
+    assert tag(row(60, "Below 20 / Below 50")) == "Bear Call Spread / Iron Condor"
+    assert tag(row(60, "Above 20 / Below 50")) == "Iron Condor / Short Strangle"
+    assert tag(row(60, "Above 20, 50, 200 (Bullish)")) == "Short Put / Bull Put Spread"
+
+
+def test_strategy_tag_survives_missing_iv_rank_and_trend() -> None:
+    from app.screener.weekly_watchlist import _compute_strategy_tag as tag
+
+    assert tag({"IV Rank (1y)": None, "Trend (Above/Below 20/50/200 EMA)": None}) == "Directional Spread"
+    assert tag({"IV Rank (1y)": float("nan")}) == "Directional Spread"
+    assert tag({"IV Rank (1y)": 60, "Trend (Above/Below 20/50/200 EMA)": None}) == "Iron Condor / Short Strangle"
+
+
+def test_too_many_failed_tickers_raises(monkeypatch) -> None:
+    import pytest
+
+    monkeypatch.delenv("INGEST_MAX_FAIL_PCT", raising=False)
+    ingest.check_fetch_rate(80, 100)  # exactly at the limit is fine
+    with pytest.raises(RuntimeError, match="too incomplete"):
+        ingest.check_fetch_rate(79, 100)
+    ingest.check_fetch_rate(0, 0)
+
+
+def test_stored_universe_is_capped_with_fresh_names_first(monkeypatch) -> None:
+    monkeypatch.setenv("INGEST_MAX_TICKERS", "3")
+    assert ingest.cap_universe(["A", "B"], ["A", "B"]) == ["A", "B"]  # within the cap: unchanged
+    # a partial scrape added extras (X, Y); fresh names keep their place, extras fill the rest
+    assert ingest.cap_universe(["A", "B", "C", "X", "Y"], ["C", "A"]) == ["C", "A", "B"]
+    assert ingest.cap_universe(["X", "Y", "Z", "W"], []) == ["W", "X", "Y"]  # fetch failed
+
+
+def test_an_empty_index_list_raises_an_alert(monkeypatch) -> None:
+    from app.data_sources import ticker_universe as tu
+
+    alerts = []
+    monkeypatch.setattr("app.utils.notify.send_alert", lambda m: alerts.append(m) or True)
+    monkeypatch.setattr(tu, "get_sp500_tickers", lambda: [])
+    monkeypatch.setattr(tu, "get_nasdaq100_tickers", lambda: ["NDX1", "NDX2"])
+    out = tu.load_tickers(use_most_active=False, use_custom=False, max_total=10)
+    assert out == ["NDX1", "NDX2"] and len(alerts) == 1 and "SP500" in alerts[0]
+
+
+def test_unknown_earnings_are_counted_not_silent(capsys) -> None:
+    from app.screener.weekly_watchlist import weekly_watchlist
+
+    df = pd.DataFrame(
+        {
+            "Ticker": ["A"], "Option Score": [8], "Next Earnings Date": [pd.NaT], "Sector": ["T"],
+            "Price": [10.0], "IV Rank (1y)": [50.0], "IV 30d": [0.3],
+            "Trend (Above/Below 20/50/200 EMA)": ["Above 20"],
+        }
+    )  # fmt: skip
+    assert weekly_watchlist(df).empty
+    assert "earnings date unknown" in capsys.readouterr().out

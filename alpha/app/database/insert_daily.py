@@ -174,6 +174,7 @@ def plan_table(existing: list[dict], payload: list[dict]) -> tuple[list[dict], l
 
     A row is inserted only if its ticker has no row for the day yet. For a ticker that has one,
     only the columns whose value actually changed are updated; an identical row is left alone.
+    An empty new value never overwrites a stored one, so a partial re-fetch cannot erase good data.
     """
     by_ticker = {str(r["ticker"]).upper(): r for r in existing}
     inserts: list[dict] = []
@@ -186,7 +187,9 @@ def plan_table(existing: list[dict], payload: list[dict]) -> tuple[list[dict], l
         changed = {
             c: v
             for c, v in row.items()
-            if c not in ("ticker", "date") and not _same(v, current.get(c))
+            if c not in ("ticker", "date")
+            and not (v is None and current.get(c) is not None)
+            and not _same(v, current.get(c))
         }
         if changed:
             updates.append((row["ticker"], changed))

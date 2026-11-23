@@ -1,22 +1,48 @@
 import pandas as pd
 
 
+def _trend_direction(text: str) -> str:
+    """'bull', 'bear' or '' from either trend format.
+
+    The CSV says "... (Bullish)" / "... (Bearish)"; live yfinance data says
+    "Above 20 / Below 50 / Above 200". All Above is bullish, all Below is bearish, a mix is neither.
+    """
+    if "bull" in text:
+        return "bull"
+    if "bear" in text:
+        return "bear"
+    above, below = text.count("above"), text.count("below")
+    if above and not below:
+        return "bull"
+    if below and not above:
+        return "bear"
+    return ""
+
+
 def _compute_strategy_tag(row) -> str:
-    """Compute strategy tag for a single row based on IV rank and trend."""
-    iv_rank = row.get("IV Rank (1y)", 0)
-    trend = str(row.get("Trend (Above/Below 20/50/200 EMA)", "")).lower()
+    """Compute strategy tag for a single row based on IV rank and trend.
+
+    A missing IV rank (e.g. under a year of history) gets the neutral "Directional Spread".
+    """
+    iv_rank = pd.to_numeric(row.get("IV Rank (1y)"), errors="coerce")
+    raw_trend = row.get("Trend (Above/Below 20/50/200 EMA)")
+    trend = "" if raw_trend is None or pd.isna(raw_trend) else str(raw_trend).lower()
+    direction = _trend_direction(trend)
+
+    if pd.isna(iv_rank):
+        return "Directional Spread"
 
     if iv_rank >= 50:
-        if "bull" in trend:
+        if direction == "bull":
             return "Short Put / Bull Put Spread"
-        if "bear" in trend:
+        if direction == "bear":
             return "Bear Call Spread / Iron Condor"
         return "Iron Condor / Short Strangle"
 
     if iv_rank <= 30:
-        if "bull" in trend:
+        if direction == "bull":
             return "Bull Call Debit Spread / Call Calendar"
-        if "bear" in trend:
+        if direction == "bear":
             return "Bear Put Debit Spread / Put Calendar"
         return "Straddle / Strangle / Calendar"
 
@@ -67,6 +93,12 @@ def weekly_watchlist(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     today = pd.Timestamp.today()
+
+    # An unknown earnings date cannot pass the 14-day buffer, so those tickers are left out.
+    # Say so, so a data gap is not mistaken for an earnings conflict.
+    unknown = int(((df["Option Score"] >= 6) & df["Next Earnings Date"].isna()).sum())
+    if unknown:
+        print(f"[INFO] {unknown} ticker(s) scoring 6+ left off the watchlist: earnings date unknown.")
 
     weekly = df[
         (df["Option Score"] >= 6) & (df["Next Earnings Date"] > today + pd.Timedelta(days=14))

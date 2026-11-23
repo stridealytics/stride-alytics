@@ -47,3 +47,49 @@ def test_prune_plan_never_touches_user_data():
     assert "options" in tables and "daily_metrics" in tables
     assert not tables & {"trades", "portfolios", "audit_events", "signal_log", "ticker_universe", "alpha_state"}
     assert all(flt.startswith("lt.") for _, _, flt in plan)
+
+
+def test_picks_are_alphas_list_not_a_second_rule_set():
+    import generate_picks as gp
+
+    rows = [
+        {"ticker": "aapl", "price": 190.5, "option_score": 8, "iv_rank_1y": 60,
+         "strategy": "Short Put / Bull Put Spread", "next_earnings_date": "2027-01-20T00:00:00"},
+        {"ticker": "TSLA", "price": 250, "option_score": 6, "iv_rank_1y": 70,
+         "strategy": "Bear Call Spread / Iron Condor"},
+        {"ticker": "MSFT", "price": 330, "option_score": 9, "iv_rank_1y": 40,
+         "strategy": "Iron Condor / Short Strangle"},
+        {"ticker": "NOPRICE", "price": None, "option_score": 9},
+    ]
+    picks = gp.build_picks(rows, "2026-11-23", limit=3)
+    assert [p["symbol"] for p in picks] == ["MSFT", "AAPL", "TSLA"]
+    assert [p["side"] for p in picks] == ["stock", "call", "put"]
+    assert picks[0]["confidence"] == 1.0 and picks[1]["confidence"] == 0.89
+    assert picks[0]["strike"] is None and picks[0]["expiry"] is None  # never invented
+    assert "next earnings 2027-01-20" in picks[1]["rationale"]
+    assert all(p["week_of"] == "2026-11-23" for p in picks)
+
+
+def test_stale_alpha_list_is_not_published():
+    import pytest
+    import generate_picks as gp
+
+    gp.check_fresh("2026-11-20", date(2026, 11, 22))  # Friday's list on Sunday is fine
+    with pytest.raises(RuntimeError, match="stale"):
+        gp.check_fresh("2026-11-01", date(2026, 11, 22))
+
+
+def test_prune_refuses_tiny_retention(monkeypatch):
+    import prune_data
+
+    assert prune_data.retention_errors() == []
+    monkeypatch.setattr(prune_data, "ALPHA_DAYS", 0)
+    assert prune_data.retention_errors() == ["ALPHA_RETENTION_DAYS=0"]
+
+
+def test_health_check_expects_the_previous_weekday():
+    import health_check
+
+    assert health_check.expected_latest_day(date(2026, 11, 24)) == date(2026, 11, 23)  # Tue -> Mon
+    assert health_check.expected_latest_day(date(2026, 11, 23)) == date(2026, 11, 20)  # Mon -> Fri
+    assert health_check.expected_latest_day(date(2026, 11, 22)) == date(2026, 11, 20)  # Sun -> Fri

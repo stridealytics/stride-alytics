@@ -229,3 +229,11 @@ def test_main_returns_nonzero_and_alerts_on_failure(monkeypatch: pytest.MonkeyPa
 def test_main_returns_zero_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(alpha_main, "run_system", lambda: None)
     assert alpha_main.main() == 0
+
+
+def test_plan_table_never_overwrites_a_value_with_null() -> None:
+    existing = [{"ticker": "AAPL", "price": 10.0, "atr": 2.0}]
+    inserts, updates = insert_daily.plan_table(
+        existing, [{"ticker": "AAPL", "date": "d", "price": 11.0, "atr": None}]
+    )
+    assert inserts == [] and updates == [("AAPL", {"price": 11.0})]
