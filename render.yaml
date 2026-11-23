@@ -10,7 +10,7 @@ services:
     # `.python-version` is the secondary pin; either one works.
     pythonVersion: "3.12.13"
     buildCommand: "pip install uv && uv sync --frozen --no-dev"
-    startCommand: "uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    startCommand: ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     numInstances: 1
     plan: free # sleeps when idle; use `starter` for always-on
     healthCheckPath: /health
