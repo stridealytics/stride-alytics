@@ -109,6 +109,13 @@ def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
         path = df.attrs.get("source_path")
         if path and os.path.exists(path):
             age_days = (time.time() - os.path.getmtime(path)) / 86400
+            if age_days > MAX_CSV_AGE_DAYS and os.getenv("INGEST_LIVE") == "1":
+                # Live ingestion is the real source. An old file stamped as today's data would
+                # silently replace it, so fail the run instead (the alert comes from main()).
+                raise NoDataError(
+                    f"Live fetch failed and {path} is {age_days:.0f} days old (limit "
+                    f"{MAX_CSV_AGE_DAYS}); refusing to store it as today's data."
+                )
             if age_days > MAX_CSV_AGE_DAYS:
                 msg = (
                     f"[WARNING] {path} is {age_days:.0f} days old; today's run will stamp its "

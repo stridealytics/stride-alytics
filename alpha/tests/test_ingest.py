@@ -274,3 +274,32 @@ def test_live_ingest_returns_real_dates_the_watchlist_can_compare(monkeypatch) -
     df = ingest.run_ingestion_pipeline(["A", "B"])
     assert pd.api.types.is_datetime64_any_dtype(df["Next Earnings Date"])
     assert list(weekly_watchlist(df)["Ticker"]) == ["A"]  # B has no earnings date: left off
+
+
+def test_live_mode_refuses_a_stale_csv_but_local_mode_only_warns(monkeypatch, tmp_path) -> None:
+    import os
+    import time
+
+    import pytest
+
+    from app import main
+
+    csv = tmp_path / "raw_screener.csv"
+    csv.write_text("Ticker\nAAA\n")
+    old = time.time() - 30 * 86400
+    os.utime(csv, (old, old))
+    stale = pd.DataFrame({"Ticker": ["AAA"]})
+    stale.attrs["source_path"] = str(csv)
+    monkeypatch.setattr(main, "load_from_supabase", lambda: pd.DataFrame())
+    monkeypatch.setattr(main, "load_local_csv", lambda: stale)
+
+    def boom():
+        raise RuntimeError("yahoo down")
+
+    monkeypatch.setattr(ingest, "run_ingestion_pipeline", boom)
+    monkeypatch.setenv("INGEST_LIVE", "1")
+    with pytest.raises(main.NoDataError, match="refusing to store"):
+        main._load_data(False)
+
+    monkeypatch.delenv("INGEST_LIVE")  # local CSV workflow: unchanged, warns only
+    assert main._load_data(False)[0] == "csv"
