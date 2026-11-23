@@ -13,6 +13,7 @@ or stale, instead of publishing an empty or outdated week.
 """
 
 import os
+import re
 import sys
 from datetime import date, timedelta
 
@@ -32,11 +33,16 @@ MAX_OPTION_SCORE = 9  # number of scoring rules in alpha/app/screener/compute_op
 
 
 def side_for(strategy: str | None) -> str:
-    """'call' for a bullish strategy tag, 'put' for a bearish one, otherwise 'stock' (neutral)."""
+    """Option type of the tag's lead structure: 'call' or 'put', otherwise 'stock' (neutral).
+
+    Direction words alone mislead ("Bull Put Spread" is a put, "Bear Call Spread" is a call), so
+    read the option type that follows them.
+    """
     text = (strategy or "").lower()
-    if "bull" in text:
-        return "call"
-    if "bear" in text:
+    match = re.search(r"\b(?:bull|bear)\s+(put|call)\b", text)
+    if match:
+        return match.group(1)
+    if "short put" in text:
         return "put"
     return "stock"
 

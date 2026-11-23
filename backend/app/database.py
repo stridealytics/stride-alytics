@@ -66,7 +66,9 @@ def configure_engine(url: str) -> None:
         kwargs["pool_pre_ping"] = True  # drop connections the pooler/Supabase closed while idle
         kwargs["pool_recycle"] = 300
         # The transaction-mode pooler cannot keep server-side prepared statements.
-        kwargs["connect_args"] = {"prepare_threshold": None}
+        # (psycopg-only option; other drivers reject it.)
+        if url.startswith("postgresql+psycopg"):
+            kwargs["connect_args"] = {"prepare_threshold": None}
     engine = create_async_engine(url, **kwargs)
     async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     using_sqlite_fallback = url.startswith("sqlite")

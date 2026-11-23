@@ -153,5 +153,6 @@ def fill_sectors(sectors: dict[str, str], client=None) -> int:
     stored = fetch_universe(client)
     todo = {t: s for t, s in sectors.items() if s and t in stored and not stored[t].get("sector")}
     for t, s in todo.items():
-        client.table(TABLE).update({"sector": s}).eq("ticker", t).execute()
+        # stored spelling: `stored` is keyed upper-case but .eq() is case-sensitive
+        client.table(TABLE).update({"sector": s}).eq("ticker", stored[t]["ticker"]).execute()
     return len(todo)

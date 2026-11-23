@@ -166,7 +166,9 @@ def _same(a, b) -> bool:
     if a is None or b is None:
         return a is None and b is None
     if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool):
-        return math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9)
+        # abs_tol covers Postgres rounding to the column scale (the narrowest is NUMERIC(x,4)),
+        # so a re-run does not rewrite a value that is stored rounded.
+        return math.isclose(a, b, rel_tol=1e-9, abs_tol=5e-5)
     return str(a) == str(b)
 
 
@@ -193,7 +195,8 @@ def plan_table(existing: list[dict], payload: list[dict]) -> tuple[list[dict], l
             and not _same(v, current.get(c))
         }
         if changed:
-            updates.append((row["ticker"], changed))
+            # Use the stored spelling: the match above ignores case, the UPDATE's .eq() does not.
+            updates.append((current["ticker"], changed))
     return inserts, updates
 
 
@@ -255,8 +258,9 @@ def sync_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = Non
         stale = 0
         if table == "weekly_watchlist" and payload[table]:
             keep = {str(r["ticker"]).upper() for r in payload[table]}
-            drop = sorted({str(r["ticker"]).upper() for r in existing} - keep)
-            if drop and len(drop) < len({str(r["ticker"]).upper() for r in existing}):
+            stored = {str(r["ticker"]) for r in existing}  # stored spelling, for the .in_() match
+            drop = sorted(t for t in stored if t.upper() not in keep)
+            if drop and len(drop) < len(stored):
                 if not read_only:
                     for i in range(0, len(drop), CHUNK):
                         client.table(table).delete().in_("ticker", drop[i : i + CHUNK]).like(

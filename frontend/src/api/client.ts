@@ -60,7 +60,9 @@ client.interceptors.response.use(
     // while the API boots. Retry reads once after a pause; never retry writes (not idempotent).
     const cfg = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
     const status = error.response?.status as number | undefined;
-    const coldStart = !error.response || status === 502 || status === 503 || status === 504;
+    const cancelled = error.code === "ERR_CANCELED";
+    const coldStart =
+      !cancelled && (!error.response || status === 502 || status === 503 || status === 504);
     if (cfg && !cfg._retried && coldStart && cfg.method?.toLowerCase() === "get") {
       cfg._retried = true;
       return new Promise((resolve) => setTimeout(resolve, 4_000)).then(() => client.request(cfg));

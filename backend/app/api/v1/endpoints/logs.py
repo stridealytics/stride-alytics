@@ -74,9 +74,22 @@ async def export_audit(
     ctx: Ctx = Depends(get_ctx),
 ) -> Response:
     """CSV export of the audit log for a period (BR-064). Newest first; before/after as JSON."""
-    rows, _ = await ctx.repo.list_audit(
-        ctx.user_id, start=start, end=end, entity=entity, action=action, limit=10_000, offset=0
-    )
+    # Page through everything so a long period is never silently cut off.
+    rows: list[dict[str, Any]] = []
+    page = 1_000
+    while True:
+        chunk, total = await ctx.repo.list_audit(
+            ctx.user_id,
+            start=start,
+            end=end,
+            entity=entity,
+            action=action,
+            limit=page,
+            offset=len(rows),
+        )
+        rows.extend(chunk)
+        if not chunk or len(rows) >= total:
+            break
     flat = [
         {
             **r,
