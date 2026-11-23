@@ -117,8 +117,9 @@ Higher score = safer, more liquid, more predictable underlying.
 
 ### Purpose
 - Band A/B → weekly watchlist  
-- Band C → conditional trades  
+- Band C → conditional trades (blocked in a DEFENSIVE regime by the backend gate)  
 - Band D/E → excluded from selling premium  
+- Enforcement: `apply_daily_filters` keeps only bands A–C; the backend gate (BR-024) rejects band E always and band D unless `allow_band_d` is set  
 
 ---
 

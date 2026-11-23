@@ -92,6 +92,10 @@ Per `.github/instructions/mermaid.instructions.md`:
 - Don't hand-edit diagrams managed by the Mermaid Sync workflow.
 - Warn the user before running Repair, because it uses Mermaid AI credits.
 
+## Claude agents and skills
+
+`.claude/agents/` holds domain agents (trading rules, band system, risk, schema) and `.claude/skills/` holds 12 project-local technical skills trimmed to this stack. `.claude/SKILLS.md` is the routing guide for both. Agent files describe rules as of their last edit, so verify a path or threshold against `backend/app/domain/thresholds.py` and the code before relying on it.
+
 ## MCP
 
 `.mcp.json` configures a GitHub HTTP MCP server (`https://api.githubcopilot.com/mcp/`). It currently fails to connect with "Incompatible auth server: does not support dynamic client registration".

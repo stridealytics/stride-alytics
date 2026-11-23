@@ -185,11 +185,14 @@ def test_clear_gate_and_unknown_regime() -> None:
 
 
 def test_layer_and_band_filters_flag_cells_without_removing_them() -> None:
-    m = build_matrix("NORMAL", gate_clear=True, layer="growth", band="E")
+    m = build_matrix("NORMAL", gate_clear=True, layer="growth", band="D")
     ic = next(r for r in m["rows"] if r["strategy"] == "Iron Condor")
     assert ic["cells"]["NORMAL"]["filtered"] is True  # bands A-C only
     straddle = next(r for r in m["rows"] if r["strategy"] == "Straddle/Strangle")
-    assert straddle["cells"]["NORMAL"]["filtered"] is False  # growth layer, band E
+    assert straddle["cells"]["NORMAL"]["filtered"] is False  # growth layer, band D
+    e = build_matrix("NORMAL", gate_clear=True, layer="growth", band="E")
+    cells = [c for row in e["rows"] for c in row["cells"].values()]
+    assert all(c["filtered"] for c in cells if c["base_availability"] != "blocked")  # none suit E
     butterfly = next(r for r in m["rows"] if r["strategy"] == "Butterfly")
     assert butterfly["cells"]["DEFENSIVE"]["filtered"] is False  # blocked cells are not "filtered"
 

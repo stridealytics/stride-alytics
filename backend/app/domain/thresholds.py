@@ -20,6 +20,7 @@ class Thresholds:
     market_cap_min: float = 2_000_000_000  # BR-019
     earnings_window_days: float = 14  # BR-020: block entries this close to earnings
     correlation_max: float = 0.85  # BR-013: block entries this correlated with an open position
+    allow_band_d: float = 0  # BR-024: 1 lets band D (speculative) trades through; band E never
     # Portfolio limits
     max_capital_at_risk_pct: float = 50.0  # BR-081 (blocks new entries)
     max_sector_risk_pct: float = 25.0  # BR-080 (reported)
@@ -44,6 +45,7 @@ BOUNDS: dict[str, tuple[float, float]] = {
     "market_cap_min": (0, 50_000_000_000),
     "earnings_window_days": (0, 60),
     "correlation_max": (0.5, 0.99),
+    "allow_band_d": (0, 1),
     "max_capital_at_risk_pct": (5, 100),
     "max_sector_risk_pct": (5, 100),
     "max_net_delta_pct": (10, 300),
@@ -61,6 +63,7 @@ _LOOSER_WHEN_HIGHER = {
     "max_net_delta_pct",
     "delta_assignment",
     "correlation_max",
+    "allow_band_d",
 }
 _LOOSER_WHEN_LOWER = {"open_interest_min", "market_cap_min", "earnings_window_days"}
 # dte_watch / dte_warning are alert timings, not safety rules, so they never warn.

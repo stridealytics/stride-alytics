@@ -181,6 +181,7 @@ async def add_trade(
                 strike=payload.strike,
                 expiry=payload.expiry,
                 returns=returns,
+                band=payload.band,
             )
             await log_gate_decision(
                 ctx,

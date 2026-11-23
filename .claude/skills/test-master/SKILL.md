@@ -1,13 +1,13 @@
 ---
 name: test-master
-description: Generates test files, creates mocking strategies, analyzes code coverage, designs test architectures, and produces test plans and defect reports across functional, performance, and security testing disciplines. Use when writing unit tests, integration tests, or E2E tests; creating test strategies or automation frameworks; analyzing coverage gaps; performance testing with k6 or Artillery; security testing with OWASP methods; debugging flaky tests; or working on QA, regression, test automation, quality gates, shift-left testing, or test maintenance.
+description: Generates test files, creates mocking strategies, analyzes code coverage, designs test architectures, and produces test plans and defect reports across functional, performance, and security testing disciplines. Use when writing unit tests, integration tests, or E2E tests; creating test strategies or automation frameworks; analyzing coverage gaps; security testing with OWASP methods; debugging flaky tests; or working on QA, regression, test automation, quality gates, shift-left testing, or test maintenance.
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
   company: https://synergetic.solutions
   version: "1.1.1"
   domain: quality
-  triggers: test, testing, QA, unit test, integration test, E2E, coverage, performance test, security test, regression, test strategy, test automation, test framework, quality metrics, defect, exploratory, usability, accessibility, localization, manual testing, shift-left, quality gate, flaky test, test maintenance
+  triggers: test, testing, QA, unit test, integration test, E2E, coverage, security test, regression, test strategy, test automation, test framework, quality metrics, defect, exploratory, usability, accessibility, manual testing, shift-left, quality gate, flaky test, test maintenance
   role: specialist
   scope: testing
   output-format: report
@@ -61,7 +61,6 @@ Load detailed guidance based on context:
 | Unit Testing | `references/unit-testing.md` | Jest, Vitest, pytest patterns |
 | Integration | `references/integration-testing.md` | API testing, Supertest |
 | E2E | `references/e2e-testing.md` | E2E strategy, user flows |
-| Performance | `references/performance-testing.md` | k6, load testing |
 | Security | `references/security-testing.md` | Security test checklist |
 | Reports | `references/test-reports.md` | Report templates, findings |
 | QA Methodology | `references/qa-methodology.md` | Manual testing, quality advocacy, shift-left, continuous testing |

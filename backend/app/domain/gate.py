@@ -252,8 +252,9 @@ def evaluate_entry(
     capital_at_risk: float | None = None,
     limits: Thresholds = DEFAULTS,
     correlations: dict[str, float | None] | None = None,
+    band: str | None = None,
 ) -> GateResult:
-    """Master gate + symbol gate + layer lock, merged."""
+    """Master gate + symbol gate + layer lock + band rule, merged."""
     master = evaluate_master(
         regime,
         equity=equity,
@@ -274,9 +275,38 @@ def evaluate_entry(
     not_evaluated = [r for r in master.not_evaluated if r != "BR-013" or correlations is None]
     reasons = master.reasons + symbol.reasons
     checked = master.checked + symbol.checked
+    state = regime.state if regime is not None else UNKNOWN
     if layer == "growth":
         checked.append("BR-023")
-        state = regime.state if regime is not None else UNKNOWN
         if growth_locked(state):
             reasons.append(GateReason("BR-023", f"The Growth layer is locked in a {state} regime."))
+    if band is not None:
+        checked.append("BR-024")
+        reasons += band_reasons(band, state, limits)
     return _result(reasons, checked, not_evaluated)
+
+
+def band_reasons(band: str, regime_state: str, limits: Thresholds = DEFAULTS) -> list[GateReason]:
+    """Risk-tier rule (BR-024): A and B pass, C is regime-dependent, D is excluded, E is rejected.
+
+    * E (high risk): always rejected, no setting overrides it.
+    * D (speculative): rejected unless the user sets ``allow_band_d`` in Settings.
+    * C (moderate risk): rejected in a DEFENSIVE regime.
+    """
+    band = band.upper()
+    if band == "E":
+        return [
+            GateReason("BR-024", "Band E (high risk) is auto-rejected by the Do-Not-Trade rules.")
+        ]
+    if band == "D" and not limits.allow_band_d:
+        return [
+            GateReason(
+                "BR-024",
+                "Band D (speculative) is excluded by default; allow it in Settings to trade it.",
+            )
+        ]
+    if band == "C" and regime_state == "DEFENSIVE":
+        return [
+            GateReason("BR-024", "Band C (moderate risk) is not allowed in a DEFENSIVE regime.")
+        ]
+    return []

@@ -79,6 +79,7 @@ async def entry_gate(
     strike: float | None,
     expiry: date | None,
     returns: ReturnsProvider,
+    band: str | None = None,
 ) -> g.GateResult:
     """Full gate for a new entry (master + symbol + layer lock + correlation)."""
     option_type = trade_type if trade_type in ("call", "put") else None
@@ -106,6 +107,7 @@ async def entry_gate(
         capital_at_risk=account.capital_at_risk,
         limits=account.limits,
         correlations=correlations,
+        band=band,
     )
 
 

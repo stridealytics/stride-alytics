@@ -30,6 +30,8 @@ export interface Thresholds {
   market_cap_min: number;
   earnings_window_days: number;
   correlation_max: number;
+  /** 1 lets band D (speculative) trades through the gate; band E is always rejected. */
+  allow_band_d: number;
   max_capital_at_risk_pct: number;
   max_sector_risk_pct: number;
   max_net_delta_pct: number;

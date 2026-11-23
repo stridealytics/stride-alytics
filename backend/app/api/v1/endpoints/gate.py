@@ -85,6 +85,7 @@ async def check_entry(
         strike=payload.strike,
         expiry=payload.expiry,
         returns=returns,
+        band=payload.band,
     )
     return {
         "success": True,

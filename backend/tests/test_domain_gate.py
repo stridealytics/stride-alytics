@@ -217,3 +217,49 @@ def test_base_layer_trades_in_a_defensive_regime_above_the_baseline() -> None:
 
 def test_entry_with_no_regime_object_is_blocked() -> None:
     assert not entry(regime=None).clear
+
+
+# ----------------------------------------------------------- band rule (BR-024)
+
+
+def band_gate(band, *, state="NORMAL", **limits):
+    from app.domain.thresholds import resolve
+
+    return evaluate_entry(
+        regime=regime(60, state=state),
+        equity=100_000,
+        min_equity=0,
+        symbol_data=good(),
+        trade_type="put",
+        layer="base",
+        news_flag=False,
+        today=TODAY,
+        limits=resolve(limits),
+        band=band,
+    )
+
+
+@pytest.mark.parametrize("band", ["A", "B", "C"])
+def test_band_a_b_c_pass_in_normal_regime(band) -> None:
+    r = band_gate(band)
+    assert "BR-024" not in rules(r) and "BR-024" in r.checked
+
+
+def test_band_e_always_rejected_even_if_d_allowed() -> None:
+    assert "BR-024" in rules(band_gate("E"))
+    assert "BR-024" in rules(band_gate("E", allow_band_d=1))
+
+
+def test_band_d_blocked_by_default_and_allowed_by_setting() -> None:
+    assert "BR-024" in rules(band_gate("D"))
+    assert "BR-024" not in rules(band_gate("D", allow_band_d=1))
+
+
+def test_band_c_blocked_in_defensive_regime() -> None:
+    assert "BR-024" in rules(band_gate("C", state="DEFENSIVE"))
+    assert "BR-024" not in rules(band_gate("A", state="DEFENSIVE"))
+
+
+def test_no_band_skips_rule() -> None:
+    r = band_gate(None)
+    assert "BR-024" not in r.checked

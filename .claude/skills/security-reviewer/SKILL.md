@@ -12,7 +12,7 @@ metadata:
   role: specialist
   scope: review
   output-format: report
-  related-skills: secure-code-guardian, code-reviewer, devops-engineer, cloud-architect, kubernetes-specialist, api-designer, mcp-developer
+  related-skills: code-reviewer, devops-engineer, test-master
 ---
 
 # Security Reviewer
@@ -50,7 +50,6 @@ Load detailed guidance based on context:
 | SAST Tools | `references/sast-tools.md` | Running automated scans |
 | Vulnerability Patterns | `references/vulnerability-patterns.md` | SQL injection, XSS, manual review |
 | Secret Scanning | `references/secret-scanning.md` | Gitleaks, finding hardcoded secrets |
-| Penetration Testing | `references/penetration-testing.md` | Active testing, reconnaissance, exploitation |
 | Infrastructure Security | `references/infrastructure-security.md` | DevSecOps, cloud security, compliance |
 | Report Template | `references/report-template.md` | Writing security report |
 

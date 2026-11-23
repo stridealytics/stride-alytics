@@ -1,13 +1,13 @@
 ---
 name: typescript-pro
-description: Implements advanced TypeScript type systems, creates custom type guards, utility types, and branded types, and configures tRPC for end-to-end type safety. Use when building TypeScript applications requiring advanced generics, conditional or mapped types, discriminated unions, monorepo setup, or full-stack type safety with tRPC.
+description: Implements advanced TypeScript type systems, creates custom type guards, utility types, and branded types. Use when building TypeScript applications requiring advanced generics, conditional or mapped types, discriminated unions, or monorepo setup.
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
   company: https://synergetic.solutions
   version: "1.1.0"
   domain: language
-  triggers: TypeScript, generics, type safety, conditional types, mapped types, tRPC, tsconfig, type guards, discriminated unions
+  triggers: TypeScript, generics, type safety, conditional types, mapped types, tsconfig, type guards, discriminated unions
   role: specialist
   scope: implementation
   output-format: code
@@ -143,7 +143,7 @@ When implementing TypeScript features, provide:
 
 ## Knowledge Reference
 
-TypeScript 5.0+, generics, conditional types, mapped types, template literal types, discriminated unions, type guards, branded types, tRPC, project references, incremental compilation, declaration files, const assertions, satisfies operator
+TypeScript 5.0+, generics, conditional types, mapped types, template literal types, discriminated unions, type guards, branded types, project references, incremental compilation, declaration files, const assertions, satisfies operator
 
 Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 

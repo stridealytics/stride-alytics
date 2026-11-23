@@ -46,9 +46,9 @@ Invoked with the Agent tool. Each encodes project-specific trading rules, file p
 
 ---
 
-## Tier 2 — Active Technical Skills (plugin: `fullstack-dev-skills`)
+## Tier 2 — Technical Skills (`.claude/skills/`, project-local)
 
-Auto-activate by context keywords, or invoke explicitly with `/skill-name`. Load full content only when triggered (~1–2k tokens on-invoke).
+These 12 skills live in this repo and are trimmed to the stack (no Kubernetes, Terraform, GitLab CI, MySQL/Oracle dialects, tRPC, Django migration, pentesting, k6). They auto-activate by context keywords, or invoke explicitly with `/skill-name`. Full content loads only when triggered.
 
 | Skill | Layer | Auto-triggers on |
 |-------|-------|-----------------|
@@ -135,23 +135,3 @@ option-strategy-reviewer    ← validation rules
 ```
 
 ---
-
-## Dormant Plugin Skills (not primary for this stack)
-
-These 55 are installed and auto-trigger if relevant keywords appear, but are not part of normal workflows here:
-
-`angular-architect`, `api-designer`, `architecture-designer`, `atlassian-mcp`, `chaos-engineer`,
-`cli-developer`, `cloud-architect`, `code-documenter`, `cpp-pro`, `csharp-developer`,
-`database-optimizer`, `django-expert`, `django-storages-s3`, `dotnet-core-expert`,
-`embedded-systems`, `fastapi-expert`\*, `feature-forge`, `fine-tuning-expert`, `flutter-expert`,
-`fullstack-guardian`, `game-developer`, `golang-pro`, `graphql-architect`, `java-architect`,
-`javascript-pro`, `kotlin-specialist`, `kubernetes-specialist`, `laravel-specialist`,
-`legacy-modernizer`, `mcp-developer`, `microservices-architect`, `ml-pipeline`,
-`monitoring-expert`, `nestjs-expert`, `nextjs-developer`\*, `pandas-pro`\*, `php-pro`,
-`playwright-expert`, `prompt-engineer`, `rag-architect`, `rails-expert`, `react-native-expert`,
-`rust-engineer`, `salesforce-developer`, `secure-code-guardian`, `shopify-expert`,
-`spark-engineer`, `spec-miner`, `spring-boot-engineer`, `sre-engineer`, `swift-expert`,
-`terraform-engineer`, `the-fool`, `vue-expert`, `vue-expert-js`, `websocket-engineer`,
-`wordpress-pro`
-
-\* `nextjs-developer` activates if working in `next-app/`; `pandas-pro` activates for alpha work.

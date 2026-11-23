@@ -14,6 +14,7 @@ class GateCheckRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=10)
     trade_type: Literal["call", "put", "stock"] = "put"
     layer: Layer | None = None
+    band: Band | None = None
     strike: float | None = Field(default=None, gt=0)
     expiry: date | None = None
     entry_date: date | None = None  # defaults to today

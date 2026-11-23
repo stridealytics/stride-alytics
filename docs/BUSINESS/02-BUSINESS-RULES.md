@@ -58,6 +58,7 @@ StrideAlytics centers around executable business rules that enforce safe stock a
 - **BR-019**: Do not trade if market cap < $2B. This is the hard floor for all trades. The Conservative/Base layer is stricter and also requires market cap > $10B (§4.1), so a $2B–$10B name can only be a Growth-layer candidate.
 - **BR-020**: Do not trade if earnings event is within 14 days.
 - **BR-021**: Do not trade if a NewsFlag is present.
+- **BR-024**: Risk-tier rule by band (when a band is set on the trade). A (safest) and B (low-risk growth) pass. C (moderate) is blocked in a DEFENSIVE regime. D (speculative) is blocked unless the user sets `allow_band_d` in Settings. E (high risk) is always rejected, with no override. The alpha pipeline applies the same rule: its daily filter keeps only bands A–C.
 
 ## 6. Market Regime Rules
 

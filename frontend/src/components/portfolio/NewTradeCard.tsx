@@ -8,6 +8,13 @@ import { GateResultPanel } from "../gate";
 import { Button, Card, Input, Select, Textarea } from "../ui";
 
 const BANDS: Band[] = ["A", "B", "C", "D", "E"];
+const BAND_TIER: Record<Band, string> = {
+  A: "(safest)",
+  B: "(low-risk growth)",
+  C: "(moderate, regime-dependent)",
+  D: "(speculative, excluded by default)",
+  E: "(high risk, auto-rejected)",
+};
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
 /** The Add-trade form: gate check, size suggestion, and the reasons when an entry is blocked. */
@@ -115,7 +122,7 @@ export function NewTradeCard({ portfolioId }: { portfolioId: string }) {
             <option value="">Not set</option>
             {BANDS.map((b) => (
               <option key={b} value={b}>
-                {b}
+                {b} {BAND_TIER[b]}
               </option>
             ))}
           </Select>

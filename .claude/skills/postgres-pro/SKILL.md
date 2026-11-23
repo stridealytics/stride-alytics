@@ -1,13 +1,13 @@
 ---
 name: postgres-pro
-description: Use when optimizing PostgreSQL queries, configuring replication, or implementing advanced database features. Invoke for EXPLAIN analysis, JSONB operations, extension usage, VACUUM tuning, performance monitoring.
+description: Use when optimizing PostgreSQL queries, or implementing advanced database features. Invoke for EXPLAIN analysis, JSONB operations, VACUUM tuning, performance monitoring.
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
   company: https://synergetic.solutions
   version: "1.1.0"
   domain: infrastructure
-  triggers: PostgreSQL, Postgres, EXPLAIN ANALYZE, pg_stat, JSONB, streaming replication, logical replication, VACUUM, PostGIS, pgvector
+  triggers: PostgreSQL, Postgres, EXPLAIN ANALYZE, pg_stat, JSONB, VACUUM, Supabase, RLS
   role: specialist
   scope: implementation
   output-format: code
@@ -22,8 +22,6 @@ Senior PostgreSQL expert with deep expertise in database administration, perform
 
 - Analyzing and optimizing slow queries with EXPLAIN
 - Implementing JSONB storage and indexing strategies
-- Setting up streaming or logical replication
-- Configuring and using PostgreSQL extensions
 - Tuning VACUUM, ANALYZE, and autovacuum
 - Monitoring database health with pg_stat views
 - Designing indexes for optimal performance
@@ -33,8 +31,7 @@ Senior PostgreSQL expert with deep expertise in database administration, perform
 1. **Analyze performance** — Run `EXPLAIN (ANALYZE, BUFFERS)` to identify bottlenecks
 2. **Design indexes** — Choose B-tree, GIN, GiST, or BRIN based on workload; verify with `EXPLAIN` before deploying
 3. **Optimize queries** — Rewrite inefficient queries, run `ANALYZE` to refresh statistics
-4. **Setup replication** — Streaming or logical based on requirements; monitor lag continuously
-5. **Monitor and maintain** — Track VACUUM, bloat, and autovacuum via `pg_stat` views; verify improvements after each change
+4. **Monitor and maintain** — Track VACUUM, bloat, and autovacuum via `pg_stat` views; verify improvements after each change
 
 ### End-to-End Example: Slow Query → Fix → Verification
 
@@ -72,8 +69,6 @@ Load detailed guidance based on context:
 |-------|-----------|-----------|
 | Performance | `references/performance.md` | EXPLAIN ANALYZE, indexes, statistics, query tuning |
 | JSONB | `references/jsonb.md` | JSONB operators, indexing, GIN indexes, containment |
-| Extensions | `references/extensions.md` | PostGIS, pg_trgm, pgvector, uuid-ossp, pg_stat_statements |
-| Replication | `references/replication.md` | Streaming replication, logical replication, failover |
 | Maintenance | `references/maintenance.md` | VACUUM, ANALYZE, pg_stat views, monitoring, bloat |
 
 ## Common Patterns
@@ -108,15 +103,6 @@ LIMIT 20;
 VACUUM (ANALYZE, VERBOSE) orders;
 ```
 
-### Replication Lag Monitoring
-
-```sql
--- On primary: check standby lag
-SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,
-       (sent_lsn - replay_lsn) AS replication_lag_bytes
-FROM pg_stat_replication;
-```
-
 ## Constraints
 
 ### MUST DO
@@ -126,7 +112,6 @@ FROM pg_stat_replication;
 - Run `ANALYZE` after bulk data changes to refresh statistics
 - Monitor autovacuum; tune `autovacuum_vacuum_scale_factor` for high-churn tables
 - Use connection pooling (pgBouncer, pgPool)
-- Monitor replication lag via `pg_stat_replication`
 - Use prepared statements to prevent SQL injection
 - Use `uuid` type for UUIDs, not `text`
 
@@ -134,7 +119,6 @@ FROM pg_stat_replication;
 - Disable autovacuum globally
 - Create indexes without first analyzing query patterns
 - Use `SELECT *` in production queries
-- Ignore replication lag alerts
 - Skip VACUUM on high-churn tables
 - Store large BLOBs in the database (use object storage)
 - Deploy index changes without verifying the planner uses them
@@ -150,7 +134,7 @@ When implementing PostgreSQL solutions, provide:
 
 ## Knowledge Reference
 
-PostgreSQL 12-16, EXPLAIN ANALYZE, B-tree/GIN/GiST/BRIN indexes, JSONB operators, streaming replication, logical replication, VACUUM/ANALYZE, pg_stat views, PostGIS, pgvector, pg_trgm, WAL archiving, PITR
+PostgreSQL 12-16, EXPLAIN ANALYZE, B-tree/GIN/GiST/BRIN indexes, JSONB operators, VACUUM/ANALYZE, pg_stat views, Supabase (pooler, RLS)
 
 Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 

@@ -52,15 +52,15 @@ _STRATEGIES: dict[str, tuple[str, dict[str, tuple[str, tuple[str, ...], tuple[st
         {
             "DEFENSIVE": (BLOCKED, (), (), "Undefined downside risk."),
             "NORMAL": (LIMITED, ("growth",), ("C", "D"), "Needs high implied volatility."),
-            "GROWTH": (AVAILABLE, ("growth",), ("C", "D", "E"), "Bullish with premium to sell."),
+            "GROWTH": (AVAILABLE, ("growth",), ("C", "D"), "Bullish with premium to sell."),
         },
     ),
     "Straddle/Strangle": (
         "Short both a call and a put; large premium, large risk if the price moves.",
         {
             "DEFENSIVE": (BLOCKED, (), (), "Undefined risk in a falling regime."),
-            "NORMAL": (LIMITED, ("growth",), ("D", "E"), "Undefined risk; small size only."),
-            "GROWTH": (LIMITED, ("growth",), ("D", "E"), "Watch for breakouts."),
+            "NORMAL": (LIMITED, ("growth",), ("D",), "Undefined risk; small size only."),
+            "GROWTH": (LIMITED, ("growth",), ("D",), "Watch for breakouts."),
         },
     ),
 }

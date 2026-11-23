@@ -47,6 +47,13 @@ export const THRESHOLD_FIELDS: ThresholdField[] = [
     hint: "Blocks a trade that moves too closely with an open position (BR-013).",
   },
   {
+    key: "allow_band_d",
+    label: "Allow band D (speculative) trades",
+    unit: "0 = no, 1 = yes",
+    group: "Do-Not-Trade gate",
+    hint: "Band D is excluded by default; band E is always rejected (BR-024).",
+  },
+  {
     key: "max_capital_at_risk_pct",
     label: "Capital at risk limit",
     unit: "% of equity",
