@@ -165,6 +165,7 @@ def build_row(ticker: str, info: dict, hist: pd.DataFrame, options: dict, calend
         "Quality Score (1-5)": None,
         "Sector": info.get("sector") or None,
         "Market Cap": _num(info.get("marketCap")),
+        "Float Shares": _num(info.get("floatShares")),
         "Beta": _num(info.get("beta")),
         "Trend (Above/Below 20/50/200 EMA)": trend_label(closes),
     }

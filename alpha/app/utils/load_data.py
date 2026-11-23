@@ -37,6 +37,7 @@ def load_from_supabase() -> pd.DataFrame:
             "price": "Price",
             "avg_volume_shares": "Avg Volume (Shares)",
             "market_cap": "Market Cap",
+            "float_shares": "Float Shares",
             "beta": "Beta",
             "option_volume": "Option Volume",
             "max_oi_near_exp": "Max OI (Near Exp)",
@@ -151,6 +152,7 @@ def load_local_csv(path: str = "raw_screener.csv") -> pd.DataFrame:
         "Debt/Equity",
         "Quality Score (1-5)",
         "Market Cap",
+        "Float Shares",
     ]
 
     # Only convert columns that exist

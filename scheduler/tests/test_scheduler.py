@@ -63,11 +63,27 @@ def test_picks_are_alphas_list_not_a_second_rule_set():
     ]
     picks = gp.build_picks(rows, "2026-11-23", limit=3)
     assert [p["symbol"] for p in picks] == ["MSFT", "AAPL", "TSLA"]
-    assert [p["side"] for p in picks] == ["stock", "call", "put"]
+    assert [p["side"] for p in picks] == ["stock", "put", "call"]  # option type, not direction
     assert picks[0]["confidence"] == 1.0 and picks[1]["confidence"] == 0.89
     assert picks[0]["strike"] is None and picks[0]["expiry"] is None  # never invented
     assert "next earnings 2027-01-20" in picks[1]["rationale"]
     assert all(p["week_of"] == "2026-11-23" for p in picks)
+
+
+def test_side_follows_the_option_type_in_the_strategy_tag():
+    import generate_picks as gp
+
+    expected = {
+        "Short Put / Bull Put Spread": "put",
+        "Bear Call Spread / Iron Condor": "call",
+        "Bull Call Debit Spread / Call Calendar": "call",
+        "Bear Put Debit Spread / Put Calendar": "put",
+        "Iron Condor / Short Strangle": "stock",
+        "Iron Condor / Butterfly": "stock",
+        "Directional Spread": "stock",
+        None: "stock",
+    }
+    assert {tag: gp.side_for(tag) for tag in expected} == expected
 
 
 def test_stale_alpha_list_is_not_published():
