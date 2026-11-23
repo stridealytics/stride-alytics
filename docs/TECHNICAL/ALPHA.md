@@ -95,6 +95,7 @@ alpha/
 - **Incomplete live fetch:** if more than `INGEST_MAX_FAIL_PCT` (default 20) percent of tickers fail in yfinance, the live fetch is treated as failed: an alert is sent and the run falls back to stored data.
 - **Empty index list:** if the S&P 500 or NASDAQ-100 scrape returns nothing, a warning and alert are sent. The stored universe is also capped at `INGEST_MAX_TICKERS` when ingesting, so a partial scrape cannot grow it past the limit.
 - **Unknown earnings date:** tickers scoring 6+ that are left off the weekly watchlist for this reason are counted in the log.
+- **Delete guard in the database** (`database/migrations/014_alpha_delete_guard.sql`): `ticker_universe` and `alpha_state` accept no DELETE or TRUNCATE; the four daily tables refuse TRUNCATE and any single DELETE that removes 25+ rows and more than half the table. A failed weekly prune or dedupe because of this is intentional; to proceed on purpose, run in the SQL editor `SET LOCAL alpha.allow_bulk_delete = 'on';` inside a transaction.
 - **Stale CSV:** if the CSV fallback is older than `MAX_CSV_AGE_DAYS` (default 3) a warning and alert are sent, because its values would be stamped with today's date.
 
 ---
