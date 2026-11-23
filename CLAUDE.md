@@ -1,101 +1,77 @@
-# CLAUDE.md
+# StrideAlytics Repository Guidance
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Use this file as a concise entry point. Follow relevant `.github/instructions/` and `docs/` rules for the files being changed.
 
 ## Current scope
 
-Personal use only. The PRO plan, billing and multi-user features have been removed from the docs, and the `mobile/` app is deferred until further confirmation. Don't build on those. Free tiers are the default, so keep designs within their limits (Supabase ~500 MB, Render free sleeps when idle, GitHub Actions minutes). Paid APIs or services (for example a data provider) may be added later if needed; record them in `docs/BUSINESS/03-FINANCIAL-MODEL.md`.
+Personal use only. PRO, billing, and multi-user features are out of scope; `mobile/` is deferred. Prefer free tiers. Record any deliberate paid API/service decision in `docs/BUSINESS/03-FINANCIAL-MODEL.md`.
 
-## Repo layout
+## Search Strategy
 
-Monorepo. Each module has its own dependencies and tooling.
+1. Use `rg`/Grep before opening files.
+2. Open only matching regions and the minimum required files.
+3. Avoid repository-wide scans.
+4. Never load lockfiles unless dependency analysis is required.
+5. Never read excluded folders or generated output.
+6. Read architecture documentation only when necessary.
 
-- `alpha/`: options-screening pipeline plus Streamlit dashboard (Python, uv)
-- `backend/`: FastAPI API (Python, uv)
-- `frontend/`: Vite + React 19 + TypeScript SPA
-- `next-app/`: separate Next.js app. Its `AGENTS.md` warns of breaking changes in this Next.js version, so read `node_modules/next/dist/docs/` before writing code.
-- `mobile/`: Expo / React Native app, mirrors the frontend screens
-- `scheduler/`: Python scripts run by GitHub Actions cron (market data, greeks, picks, health check)
-- `database/`: SQL migrations, schema, RLS policies
-- `docs/`: source of truth for business and technical rules. Read the relevant `docs/` files before feature, architecture or layer work (`.github/instructions/docs-first`). For backend work also read `docs/TECHNICAL/RULES/backend/*` and `api-flow/API-FLOW.md`.
+Minimize token usage and keep responses concise. Avoid loading files over 500 lines unless required; return diffs or modified functions rather than rewriting whole files. For explicitly requested dependency debugging, temporarily remove the relevant Read/Grep deny entries in `.claude/settings.json`, then restore them.
 
-There is no root README. `alpha/README.md` and `docs/TECHNICAL/ALPHA.md` describe the pipeline.
+`requirements/` is archival source material (original `.docx` drafts and blueprints) and is denied by default; `docs/` supersedes it. Ignore it unless asked. To consult one file, convert it on demand (for example `pandoc <file>.docx -t gfm` into the scratchpad) or temporarily lift the deny entries. See `requirements/README.md`.
+
+## Repository map
+
+- `alpha/`: options-screening pipeline and Streamlit dashboard (Python/uv).
+- `backend/`: FastAPI API (Python/uv).
+- `frontend/`: Vite + React + TypeScript SPA.
+- `next-app/`: separate Next.js app; consult `next-app/AGENTS.md`. Read installed Next.js docs only for explicitly requested dependency debugging.
+- `mobile/`: deferred Expo/React Native app; do not extend without confirmation.
+- `scheduler/`: scheduled Python jobs.
+- `database/`: migrations, schema, and RLS.
+- `docs/`: business and technical source of truth. Start at `docs/README.md` and `docs/TECHNICAL/00-ARCHITECTURE-INDEX.md`.
+- `infra/`: deployment configuration.
+
+For backend work, also follow the relevant `docs/TECHNICAL/RULES/backend/` and `docs/TECHNICAL/RULES/api-flow/API-FLOW.md` guidance.
 
 ## Commands
 
-Python modules need Python 3.12 (backend, scheduler) or 3.11+ (alpha) and use uv.
+Python modules use Python 3.12 (backend/scheduler) or 3.11+ (alpha) with uv.
 
-**alpha** (`cd alpha`)
+**alpha** (run from `alpha/`):
 - `uv sync`
-- `uv run test_local.py`: runs the core pipeline with no external services
-- `uv run python app/main.py`: full pipeline (needs Supabase and API keys)
-- `streamlit run app/streamlit_app.py`: run from `alpha/` so `app.*` imports resolve
-- `uv run lint|format|typecheck|verify`: ruff and black (line length 100), strict mypy
-- `uv run pytest tests -q`: pipeline I/O tests (fake Supabase client, no network)
-- `uv run python -m app.inspect_target` prints which Supabase project alpha is pointed at (ref, table row counts, protection flag) and writes nothing. `uv run python app/main.py --dry-run` (or `ALPHA_DRY_RUN=1`) fetches and computes everything but writes nothing. `ALPHA_EXPECT_PROJECT=<project ref>` makes a run abort if `SUPABASE_URL` is a different project.
-- `app/preflight.py` runs first and lists every missing setting at once (Supabase URL/key, Sheets credentials); optional features are reported as skipped.
-- The pipeline fails (non-zero exit + Slack/Discord alert) when there is no real data or a Supabase write fails. Built-in sample rows are used only with `ALLOW_SAMPLE_DATA=1` and are never written.
+- `uv run test_local.py`: core pipeline without external services
+- `uv run python app/main.py`: full pipeline (requires Supabase/API keys)
+- `streamlit run app/streamlit_app.py`
+- `uv run lint|format|typecheck|verify`
+- `uv run pytest tests -q`
+- `uv run python -m app.inspect_target`: read-only project/status check
+- `uv run python app/main.py --dry-run`: fetch and compute without writes
+- `ALPHA_EXPECT_PROJECT=<project ref>` aborts if Supabase points elsewhere; `ALPHA_DRY_RUN=1` enables dry-run mode.
+- `app/preflight.py` reports missing settings. Sample rows require `ALLOW_SAMPLE_DATA=1` and are never written.
 
-**backend** (`cd backend`)
-- `uv sync`, `uv run dev` (watcher; `--once` for one run)
+**backend** (run from `backend/`):
+- `uv sync`, `uv run dev` (`--once` for one run)
 - `uv run lint|format|typecheck|test|verify`
-- All tests: `uv run pytest tests -q`
-- One test: `uv run pytest tests/test_services.py::test_name -q`
-- Tests run on a per-test SQLite file (no Postgres needed). To run the same suite on a throwaway PostgreSQL built from `database/migrations` (apply `database/scripts/local_supabase_shim.sql` first; the commands are in its header), set `TEST_PG_URL`; it empties every table before each test and refuses `DATABASE_URL`. `scripts/smoke_db.py --disposable` (with `SMOKE_DB_URL`) checks the real Postgres triggers against a throwaway database only.
+- `uv run pytest tests -q`; one test: `uv run pytest tests/test_services.py::test_name -q`
+- Tests use per-test SQLite. For disposable PostgreSQL guidance, see `database/scripts/local_supabase_shim.sql`.
+- PostgreSQL tests use `TEST_PG_URL`; they empty tables and reject `DATABASE_URL`. `scripts/smoke_db.py --disposable` requires `SMOKE_DB_URL`.
 
-**frontend** (`cd frontend`)
+**frontend** (run from `frontend/`):
 - `npm ci`, `npm run dev`
-- `npm run verify` (type-check plus lint), `npm run build`
-- `npm test` (vitest + Testing Library, jsdom); one file: `npx vitest run <file>`
+- `npm run verify` (type-check + lint), `npm run build`, `npm test`
+- One test file: `npx vitest run <file>`
 
-Setup: `scripts/setup-dev.sh` or `scripts/setup-dev.ps1` installs dependencies and husky hooks.
+Setup: `scripts/setup-dev.sh` or `scripts/setup-dev.ps1`.
 
-## Hooks and CI
+## Workflow and conventions
 
-- `.husky/pre-commit` runs checks only for the side that changed (`frontend/`, `backend/` or `alpha/`). The backend and alpha black steps auto-fix files and then abort the commit, so re-stage and commit again. Alpha runs ruff, black and its pytest suite (no mypy: its pandas stubs are missing). CI runs the same ruff and black steps for alpha.
-- `.github/workflows/ci.yml` runs on `main` and `develop`. Some steps use `|| echo` and do not block, so a green CI does not prove the tests pass.
-- Alpha's Dockerfile and `alpha-daily-run.yml` use Python 3.11, while its linters target py312.
+- Read docs and matching `.github/instructions/` before technical or business changes; use the layer-specific rules.
+- Keep backend endpoints, services, and schemas separate; use the centralized API URL construction patterns.
+- `.husky/pre-commit` runs checks for changed modules. Backend/alpha black may modify files and abort; review, stage, and rerun the commit.
+- Alpha pre-commit runs ruff, black, and pytest (not mypy). CI has non-blocking steps; a green run does not prove all tests passed.
+- For diagrams, follow `.github/instructions/mermaid.instructions.md`; validate and preview `.mmd` files before presenting them. Warn before Mermaid Repair because it uses credits.
+- `.claude/SKILLS.md` routes project-specific agents and skills. Verify thresholds and rules against current code/docs.
 
-## Architecture
+## Detailed references
 
-**Alpha pipeline** (`alpha/app/main.py:run_system`):
-1. Load data: Supabase first (`utils/load_data.py`), then `alpha/raw_screener.csv`, then built-in sample rows.
-2. Score options 0–9 (`screener/compute_option_score.py`).
-3. Assign bands A–E (`screener/band_pipeline.py`).
-4. Apply daily filters (`screener/apply_filters.py`).
-5. Build the weekly watchlist (`screener/weekly_watchlist.py`).
-6. Write to Supabase (`database/insert_daily.py:sync_day`). It never wipes: it inserts new tickers and updates only changed rows for the day. The ticker list is kept once in `ticker_universe` (`database/universe.py`; the daily sync adds new tickers and soft-removes dropped ones, with a guard against mass removal), and after the first complete load `database/safety.py` blocks bulk deletes (`clear_all_tables`, `delete_rows`) unless `ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND`.
-7. Push to Google Sheets (`sheets/push_to_sheets.py`).
-
-Failures in the insert and Sheets steps only log a warning.
-
-`app/ingest.py` fetches free yfinance metrics through `data_sources/free_metrics.py` (key-free; used first when `INGEST_LIVE=1`). The Polygon, FMP and Massive modules in `data_sources/` are not used by it. `alpha/app/streamlit_app.py` reads Supabase tables with `st.cache_data`. The root `requirements.txt` mirrors alpha's dependencies for Streamlit Cloud.
-
-**Persistence** (`backend/app`): endpoints use `Repo` (`repositories/sql.py`) through `get_ctx` in `api/deps.py`, which resolves the user, creates their `public.users` row on first sight and scopes every query to them. PostgreSQL is used when `DATABASE_URL` is set; otherwise an in-memory SQLite fallback starts (data lost on restart, warning logged). The ORM models define the SQLite schema and the `.sql` files in `database/migrations/` are the PostgreSQL source of truth, so change both together. `signal_log` and `audit_events` are append-only (DB trigger + `ImmutableRecordError`); every trade, portfolio, watchlist and settings change writes an audit row in the same transaction. Alpha's `trades` / `audit_log` tables have different columns than the backend's (see `docs/TODO/PENDING-WORK.md`).
-
-**Trading rules** (`backend/app/domain`, pure functions, no web/DB imports): `regime_score` (0–100 from trend, VIX, IV rank), `allocation` (Base/Growth split, Growth lock), `sizing` (risk budget, quantity, band caps) and `gate` (the Do-Not-Trade rules BR-010–021, including the correlation rule BR-013 fed by an injected `get_returns_provider`), plus `alerts` (exit alerts), `portfolio_risk`, `ev` and `strategy_matrix`. Their limits are not hard-coded: `thresholds.py` holds the defaults, allowed ranges and the user's overrides (`user_settings.thresholds`), and each rule takes a `limits` argument. Scenario repricing lives in `services/scenarios.py`. Live prices, sectors and option chains come from injected providers (`get_position_data_provider`, `get_sector_provider`, `get_chain_provider`), which tests replace with fakes in `tests/conftest.py`. `services/trading.py` loads a user's settings and the live inputs and calls them; `POST /trades` runs the gate and answers 409 with every reason when blocked. **Missing data blocks a trade** (fail-safe) and there is no override. Market data for the gate and regime is injected (`get_symbol_data_provider`, `regime_score.fetch_inputs`), so tests use fakes (see `tests/conftest.py`) and never touch the network. The scheduler imports `app.domain.regime_score` directly, so keep that module free of heavy imports.
-
-**Platform**: the frontend (axios in `src/api/client.ts`, TanStack Query hooks, zustand stores) calls the backend `/api/v1` routes. The backend layers are endpoints → services → models/database, on Supabase Postgres via async SQLAlchemy, with JWT auth. The `scheduler/` scripts write to Supabase on GitHub Actions cron.
-
-## Configuration
-
-- Alpha (`alpha/app/config.py`): `SUPABASE_URL` and `SUPABASE_KEY` (service_role) are required. `POLYGON_API_KEY`, `FMP_API_KEY`, `DASHBOARD_PASSWORD` (Streamlit gate), `MASSIVE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID` and the Slack/Discord webhook URLs are optional. The alpha README says to copy `alpha/.env.example`, but that file is not tracked.
-- Root and `backend/` `.env.example` cover the backend, frontend and mobile settings.
-- Backend `ENVIRONMENT` defaults to `production`. Dev auth tokens (`dev:<id>`, `dev-admin-token`) and the dev login fallback work only with `ENVIRONMENT=development` (set it in `backend/.env` for local work). Real Supabase JWTs are verified with audience `authenticated` (`SUPABASE_JWT_AUDIENCE`).
-- `ALLOW_SIGNUP` (default false) gates `/auth/signup`; production refuses to start without `DATABASE_URL`; use the Supabase transaction-pooler URL. Auth accepts HS256 (`SUPABASE_JWT_SECRET`) and ES256/RS256 (JWKS from `SUPABASE_URL`). `scheduler/` scripts reuse single `backend/app` modules (`app.services` re-exports nothing on purpose) and `scheduler/tests` guards that they import; weekday jobs run in `market-close.yml`, weekly picks and `prune_data.py` in `weekly.yml`.
-- API responses for market tickers, the screener and regime carry a `source` field; anything other than `live` is placeholder data and the UI labels it.
-
-## Diagrams
-
-Per `.github/instructions/mermaid.instructions.md`:
-- Write diagrams to `.mmd` files and validate them (`mermaid-diagram-validator`) before showing them.
-- Don't hand-edit diagrams managed by the Mermaid Sync workflow.
-- Warn the user before running Repair, because it uses Mermaid AI credits.
-
-## Claude agents and skills
-
-`.claude/agents/` holds domain agents (trading rules, band system, risk, schema) and `.claude/skills/` holds 12 project-local technical skills trimmed to this stack. `.claude/SKILLS.md` is the routing guide for both. Agent files describe rules as of their last edit, so verify a path or threshold against `backend/app/domain/thresholds.py` and the code before relying on it.
-
-## MCP
-
-`.mcp.json` configures a GitHub HTTP MCP server (`https://api.githubcopilot.com/mcp/`). It currently fails to connect with "Incompatible auth server: does not support dynamic client registration".
+Architecture, persistence, trading-rule, and configuration notes formerly kept here are in [docs/TECHNICAL/CLAUDE-CONTEXT.md](docs/TECHNICAL/CLAUDE-CONTEXT.md). Read only relevant sections. Use the relevant layer docs and `docs/TECHNICAL/RULES/README.md` for current conventions.
