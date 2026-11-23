@@ -74,9 +74,14 @@ def notify(message: str) -> None:
 
 def main() -> int:
     errors = []
-    err = check_api(os.getenv("API_URL", "http://localhost:8000"))
-    if err:
-        errors.append(err)
+    # Unset locally -> localhost. Set but empty (an unset GitHub secret) -> no API deployed, skip.
+    api_url = os.getenv("API_URL", "http://localhost:8000").strip()
+    if api_url:
+        err = check_api(api_url)
+        if err:
+            errors.append(err)
+    else:
+        print("- API check skipped (API_URL / PROD_API_URL not set)")
 
     url, key = os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY")
     if url and key:

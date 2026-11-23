@@ -2,10 +2,11 @@ name: Market Close Jobs
 
 # One job (one dependency install) instead of three separate cron workflows, to save Actions
 # minutes. Order matters: fetch the chains, then compute Greeks from them, then the regime.
-# 21:00 UTC is after the US close in both winter (16:00 EST) and summer (17:00 EDT).
+# The US close is 21:00 UTC in winter (16:00 EST) and 20:00 UTC in summer (16:00 EDT); cron is not
+# DST-aware, so 22:00 UTC leaves a margin after the close in both seasons.
 on:
   schedule:
-    - cron: "0 21 * * 1-5"
+    - cron: "0 22 * * 1-5"
   workflow_dispatch:
 
 concurrency:
