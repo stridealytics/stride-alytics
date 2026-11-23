@@ -28,7 +28,6 @@ dependencies = [
     # --- Data / quant ---
     "numpy==1.26.4",
     "pandas>=2.2.3,<3",
-    "ta-lib==0.6.5",
 
     # --- Logging ---
     "structlog>=24.4.0",
@@ -113,12 +112,4 @@ strict = true
 module = ["yfinance.*"]
 ignore_missing_imports = true
 
-[tool.uv]
-no-build-package = ["ta-lib"]
-
-[tool.uv.sources]
-ta-lib = [
-    { path = "./wheels/ta_lib-0.6.5-cp312-cp312-win_amd64.whl",            marker = "sys_platform == 'win32'" },
-    { path = "./wheels/ta_lib-0.6.5-cp312-cp312-manylinux_2_28_x86_64.whl", marker = "sys_platform == 'linux'" },
-]
 
