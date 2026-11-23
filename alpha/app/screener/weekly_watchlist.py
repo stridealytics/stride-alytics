@@ -109,8 +109,10 @@ def weekly_watchlist(df: pd.DataFrame) -> pd.DataFrame:
 
     weekly["Strategy Tag"] = weekly.apply(_compute_strategy_tag, axis=1)
 
-    # Add Date column if missing (use today's date)
-    if "Date" not in weekly.columns and "date" not in weekly.columns:
+    # Normalize date column to "Date"
+    if "date" in weekly.columns and "Date" not in weekly.columns:
+        weekly = weekly.rename(columns={"date": "Date"})
+    elif "Date" not in weekly.columns:
         weekly["Date"] = today
 
     return weekly[
