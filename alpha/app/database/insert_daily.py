@@ -24,6 +24,7 @@ CSV_TO_DB_COLUMNS = {
     "Quality Score (1-5)": "quality_score",
     "Trend (Above/Below 20/50/200 EMA)": "trend",
     "Trend": "trend",
+    "Option Score": "option_score",
     "Band": "band",
     "Sector": "sector",
     "Market Cap": "market_cap",

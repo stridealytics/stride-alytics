@@ -88,6 +88,9 @@ def run_ingestion_pipeline(tickers: list[str] | None = None) -> pd.DataFrame:
     df = fetch_metrics(tickers)
     print(f"Fetched {len(df)} of {len(tickers)} tickers.")
     check_fetch_rate(len(df), len(tickers))
+    # The CSV and Supabase loaders give real dates; the scoring and watchlist steps compare them.
+    if "Next Earnings Date" in df.columns:
+        df["Next Earnings Date"] = pd.to_datetime(df["Next Earnings Date"], errors="coerce")
     return df
 
 

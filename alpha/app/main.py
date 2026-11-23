@@ -222,6 +222,10 @@ def main(argv: list[str] | None = None) -> int:
     ``--dry-run`` fetches and computes everything but writes nothing (no Supabase, no Sheets).
     """
     argv = sys.argv[1:] if argv is None else argv
+    # A print of a character the console cannot encode (emoji on Windows) must never fail a run.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     if "--dry-run" in argv:
         os.environ["ALPHA_DRY_RUN"] = "1"
         print("[INFO] DRY RUN: nothing will be written to Supabase or Google Sheets.")

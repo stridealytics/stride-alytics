@@ -237,3 +237,12 @@ def test_plan_table_never_overwrites_a_value_with_null() -> None:
         existing, [{"ticker": "AAPL", "date": "d", "price": 11.0, "atr": None}]
     )
     assert inserts == [] and updates == [("AAPL", {"price": 11.0})]
+
+
+def test_option_score_is_stored_in_every_table(fake_client: FakeSupabase) -> None:
+    """Regression: 'Option Score' had no column mapping, so option_score was NULL everywhere."""
+    df = _scored_df()
+    insert_daily.sync_day(df, _weekly(df), day="2026-12-01")
+    for table in ("daily_metrics", "option_scores", "weekly_watchlist"):
+        scores = {r["ticker"]: r["option_score"] for r in fake_client.tables[table]}
+        assert scores == {"AAPL": 8, "MSFT": 6}, table

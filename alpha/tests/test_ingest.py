@@ -227,3 +227,50 @@ def test_unknown_earnings_are_counted_not_silent(capsys) -> None:
     )  # fmt: skip
     assert weekly_watchlist(df).empty
     assert "earnings date unknown" in capsys.readouterr().out
+
+
+def test_main_survives_characters_the_console_cannot_encode(monkeypatch, capsys) -> None:
+    """Regression: emoji prints crashed the live fetch on Windows (cp1252) with a 'charmap' error."""
+    import io
+    import sys
+
+    from app import main
+
+    raw = io.BytesIO()
+    cp1252 = io.TextIOWrapper(raw, encoding="cp1252")
+    monkeypatch.setattr(sys, "stdout", cp1252)
+    monkeypatch.setattr(main, "run_system", lambda: print("added \U0001f4e5 tickers"))
+    assert main.main([]) == 0
+    cp1252.flush()
+    assert b"added" in raw.getvalue()
+
+
+def test_index_table_is_parsed_without_lxml() -> None:
+    """Regression: pandas.read_html needs lxml, which was never installed, so no ticker loaded."""
+    from app.data_sources.ticker_universe import table_column
+
+    html = (
+        '<table id="constituents"><tr><th>Symbol</th><th>Security</th></tr>'
+        '<tr><td><a>AAPL</a></td><td>Apple</td></tr>'
+        "<tr><td>BRK.B</td><td>Berkshire</td></tr><tr><td></td><td>blank</td></tr></table>"
+    )
+    assert table_column(html, "Symbol") == ["AAPL", "BRK.B"]
+    assert table_column(html, "Ticker") == []  # no such column
+    assert table_column("<p>no table</p>", "Symbol") == []
+
+
+def test_live_ingest_returns_real_dates_the_watchlist_can_compare(monkeypatch) -> None:
+    """Regression: text earnings dates crashed weekly_watchlist ('>' between str and Timestamp)."""
+    from app.screener.weekly_watchlist import weekly_watchlist
+
+    raw = pd.DataFrame(
+        {
+            "Ticker": ["A", "B"], "Next Earnings Date": ["2099-01-01", None], "Option Score": [8, 8],
+            "Sector": ["T", "T"], "Price": [10.0, 10.0], "IV Rank (1y)": [50.0, 50.0],
+            "IV 30d": [0.3, 0.3], "Trend (Above/Below 20/50/200 EMA)": ["Above 20", "Above 20"],
+        }
+    )  # fmt: skip
+    monkeypatch.setattr(ingest, "fetch_metrics", lambda t: raw.copy())
+    df = ingest.run_ingestion_pipeline(["A", "B"])
+    assert pd.api.types.is_datetime64_any_dtype(df["Next Earnings Date"])
+    assert list(weekly_watchlist(df)["Ticker"]) == ["A"]  # B has no earnings date: left off

@@ -160,15 +160,14 @@ create table if not exists alpha_state (
 
 
 -- ─────────────────────────────────────────────
--- 9. Optional, once, after removing duplicate (date, ticker) rows:
---    stops duplicates at the database level. The pipeline already avoids creating them.
---
---    -- find them first (or run alpha/scripts/dedupe_duplicates.sql, which also removes them):
---    --   select date, ticker, count(*) from daily_metrics group by 1, 2 having count(*) > 1;
---    -- then, once clean:
---    --   create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
---    (same for option_scores, bands, weekly_watchlist)
+-- 9. One row per (date, ticker): stops duplicates at the database level. On a fresh database
+--    this is safe to create right away. On an existing one with duplicates, run
+--    alpha/scripts/dedupe_duplicates.sql first (it also creates these indexes).
 -- ─────────────────────────────────────────────
+create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
+create unique index if not exists uq_option_scores_date_ticker on option_scores(date, ticker);
+create unique index if not exists uq_bands_date_ticker on bands(date, ticker);
+create unique index if not exists uq_weekly_watchlist_date_ticker on weekly_watchlist(date, ticker);
 
 
 -- ─────────────────────────────────────────────

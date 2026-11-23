@@ -23,16 +23,36 @@ load_dotenv()
 HEADERS = {"User-Agent": "StrideAlytics-alpha/1.0 (personal screener; ticker list refresh)"}
 
 
+def table_column(html: str, header: str, table_id: str = "constituents") -> list[str]:
+    """Text of the ``header`` column of the table with ``table_id`` (empty list if not found).
+
+    Parsed with BeautifulSoup alone, so no lxml/html5lib dependency is needed.
+    """
+    table = BeautifulSoup(html, "html.parser").find("table", {"id": table_id})
+    if table is None:
+        return []
+    rows = table.find_all("tr")
+    if not rows:
+        return []
+    names = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
+    if header not in names:
+        return []
+    idx = names.index(header)
+    values = []
+    for row in rows[1:]:
+        cells = row.find_all(["td", "th"])
+        if len(cells) > idx and cells[idx].get_text(strip=True):
+            values.append(cells[idx].get_text(strip=True))
+    return values
+
+
 def get_sp500_tickers() -> list[str]:
     """Fetch S&P 500 constituents from a public index constituent list (scraped)."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        table = soup.find("table", {"id": "constituents"})
-        df = pd.read_html(str(table))[0]
-        tickers = df["Symbol"].tolist()
+        tickers = table_column(resp.text, "Symbol")
         return [str(t).replace(".", "-") for t in tickers]
     except Exception as e:
         print(f"⚠️ Failed to fetch S&P 500 tickers: {e}")
@@ -41,14 +61,11 @@ def get_sp500_tickers() -> list[str]:
 
 def get_nasdaq100_tickers() -> list[str]:
     """Fetch NASDAQ 100 constituents from a public index constituent list (scraped)."""
-    url = "https://en.wikipedia.org/wiki/NASDAQ-100"
+    url = "https://en.wikipedia.org/wiki/List_of_NASDAQ-100_companies"
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        table = soup.find("table", {"id": "constituents"})
-        df = pd.read_html(str(table))[0]
-        tickers = df["Ticker"].tolist()
+        tickers = table_column(resp.text, "Ticker")
         return [str(t).replace(".", "-") for t in tickers]
     except Exception as e:
         print(f"⚠️ Failed to fetch NASDAQ 100 tickers: {e}")
