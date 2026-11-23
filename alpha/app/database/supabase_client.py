@@ -22,11 +22,14 @@ from app.config import config
 
 def _validate_supabase_env():
     if not config.SUPABASE_URL:
-        raise ValueError("[ERROR] SUPABASE_URL is missing. Add it to your .env file.")
+        raise ValueError(
+            "[ERROR] SUPABASE_URL is missing. Add it to your environment or Streamlit secrets."
+        )
 
     if not config.SUPABASE_KEY:
         raise ValueError(
-            "[ERROR] SUPABASE_KEY (service_role) is missing. Add it to your .env file."
+            "[ERROR] SUPABASE_KEY (service_role) is missing. "
+            "Add it to your environment or Streamlit secrets."
         )
 
 
