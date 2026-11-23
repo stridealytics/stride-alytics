@@ -32,7 +32,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="StrideAlytics API",
     version="0.1.0",
-    description="Options trading analytics — multi-platform (web/mobile/API).",
+    description=(
+        "StrideAlytics: Stock and Options Trading System. "
+        "Rules-based analysis and decision support (web, mobile, API)."
+    ),
     lifespan=lifespan,
 )
 

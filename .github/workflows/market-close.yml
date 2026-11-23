@@ -1,0 +1,64 @@
+name: Market Close Jobs
+
+# One job (one dependency install) instead of three separate cron workflows, to save Actions
+# minutes. Order matters: fetch the chains, then compute Greeks from them, then the regime.
+# The US close is 21:00 UTC in winter (16:00 EST) and 20:00 UTC in summer (16:00 EDT); cron is not
+# DST-aware, so 22:00 UTC leaves a margin after the close in both seasons.
+on:
+  schedule:
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: market-close
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: scheduler
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: scheduler/uv.lock
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Fetch market data
+        run: uv run python scripts/fetch_market_data.py
+
+      # `always()` so one failing step does not hide the others; the job still fails overall.
+      - name: Calculate Greeks
+        if: always()
+        run: uv run python scripts/calculate_greeks.py
+
+      - name: Generate market regime
+        if: always()
+        run: uv run python scripts/generate_regime.py
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -sS -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Market close jobs failed: ${RUN_URL}\"}" "$SLACK_WEBHOOK" || true
+          fi

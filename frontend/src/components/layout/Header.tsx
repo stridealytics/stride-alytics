@@ -30,7 +30,7 @@ function TickerBox({ data }: { data: TickerData | null }) {
           isNegative ? styles.indexChangeNegative : styles.indexChangePositive
         )}
       >
-        {isLoading ? "—" : `${changeNum >= 0 ? "+" : ""}${data?.changePercent}%`}
+        {isLoading ? "—" : `${changeNum >= 0 ? "+" : ""}${data?.change_percent}%`}
       </span>
       <span
         className={classNames(

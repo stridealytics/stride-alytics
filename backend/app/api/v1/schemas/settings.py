@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.domain import thresholds as thresholds_mod
+
 BANDS = ("A", "B", "C", "D", "E")
 REGIME_WEIGHT_KEYS = ("trend", "vix", "iv_rank")
 
@@ -40,6 +42,15 @@ class SettingsUpdate(BaseModel):
     regime_weights: dict[str, float] | None = None
     widget_toggles: dict[str, bool] | None = None
     enforce_gate: bool | None = None
+    # Only the rule thresholds that differ from the defaults; {} resets them all.
+    thresholds: dict[str, float] | None = None
+
+    @field_validator("thresholds")
+    @classmethod
+    def _check_thresholds(cls, v: dict[str, float] | None) -> dict[str, float] | None:
+        if v is None:
+            return v
+        return thresholds_mod.validate(dict(v))  # raises ValueError -> 422
 
     @field_validator("band_caps")
     @classmethod

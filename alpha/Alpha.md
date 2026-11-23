@@ -43,7 +43,7 @@ alpha/
 │
 └── .github/
     └── workflows/
-        └── daily_run.yml
+        └── alpha-daily-run.yml
 ```
 
 ## Quick Reference

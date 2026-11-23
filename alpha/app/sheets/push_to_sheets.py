@@ -1,8 +1,10 @@
 """
 Push DataFrames to Google Sheets using the Sheets REST API (requests library).
 """
+
 import json
 import os
+import urllib.parse
 
 import pandas as pd
 import requests
@@ -40,35 +42,61 @@ def _api(method: str, url: str, body: dict | None = None) -> dict:
     return r.json()
 
 
-import urllib.parse
+def _col_letter(n: int) -> str:
+    """1 -> A, 26 -> Z, 27 -> AA."""
+    letters = ""
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        letters = chr(65 + rem) + letters
+    return letters
 
 
-def _ensure_worksheet(sid: str, name: str) -> None:
-    """Create worksheet if it doesn't exist."""
-    try:
-        _api("GET", f"https://sheets.googleapis.com/v4/spreadsheets/{sid}?fields=sheets.properties")
-    except Exception:
-        pass
-    try:
+def _cell(value) -> str:
+    """One cell as text. Missing values are blank, not 'nan'."""
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        return ""
+    return str(value)
+
+
+def _grid_size(sid: str, name: str) -> tuple[int, int] | None:
+    """(rows, columns) of the worksheet, or None if it does not exist."""
+    data = _api(
+        "GET", f"https://sheets.googleapis.com/v4/spreadsheets/{sid}?fields=sheets.properties"
+    )
+    for sheet in data.get("sheets", []):
+        props = sheet.get("properties", {})
+        if props.get("title") == name:
+            grid = props.get("gridProperties", {})
+            return grid.get("rowCount", 0), grid.get("columnCount", 0)
+    return None
+
+
+def _ensure_worksheet(sid: str, name: str, rows: int, cols: int) -> None:
+    """Create the worksheet, or grow it so ``rows`` x ``cols`` fit."""
+    rows, cols = max(rows, 500), max(cols, 26)
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{sid}:batchUpdate"
+    size = _grid_size(sid, name)
+    if size is None:
+        grid = {"rowCount": rows, "columnCount": cols}
         _api(
             "POST",
-            f"https://sheets.googleapis.com/v4/spreadsheets/{sid}:batchUpdate",
-            {
-                "requests": [
-                    {
-                        "addSheet": {
-                            "properties": {
-                                "title": name,
-                                "gridProperties": {"rowCount": 500, "columnCount": 26},
-                            }
-                        }
-                    }
-                ]
-            },
+            url,
+            {"requests": [{"addSheet": {"properties": {"title": name, "gridProperties": grid}}}]},
         )
-    except RuntimeError as e:
-        if "409" not in str(e) and "already exists" not in str(e).lower():
-            raise  # re-raise unexpected errors
+    elif size[0] < rows or size[1] < cols:
+        grid = {"rowCount": max(size[0], rows), "columnCount": max(size[1], cols)}
+        props = {"title": name, "gridProperties": grid}
+        update = {"updateSheetProperties": {"properties": props, "fields": "title,gridProperties"}}
+        # updateSheetProperties needs the numeric sheetId, so look it up.
+        meta = _api(
+            "GET", f"https://sheets.googleapis.com/v4/spreadsheets/{sid}?fields=sheets.properties"
+        )
+        for sheet in meta.get("sheets", []):
+            if sheet["properties"].get("title") == name:
+                update["updateSheetProperties"]["properties"]["sheetId"] = sheet["properties"][
+                    "sheetId"
+                ]
+        _api("POST", url, {"requests": [update]})
 
 
 def push_to_sheet(df: pd.DataFrame, sheet_name: str) -> None:
@@ -76,6 +104,10 @@ def push_to_sheet(df: pd.DataFrame, sheet_name: str) -> None:
     Push a DataFrame to a specific worksheet.
     Requires GOOGLE_SHEETS_SPREADSHEET_ID in .env or env.
     The spreadsheet must already exist and be shared with the service account email.
+
+    Values are written as plain text (``RAW``), so a cell that starts with ``=`` is never run as
+    a formula. The sheet is cleared in full first, so a shorter push leaves no old rows behind,
+    and any number of rows or columns is supported.
     """
     sid = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
     if not sid:
@@ -84,23 +116,22 @@ def push_to_sheet(df: pd.DataFrame, sheet_name: str) -> None:
             "Add it to alpha/.env or set it as an environment variable."
         )
 
-    # Ensure the worksheet exists
-    _ensure_worksheet(sid, sheet_name)
+    values = [[_cell(c) for c in df.columns]] + [
+        [_cell(v) for v in row] for row in df.to_numpy().tolist()
+    ]
+    width = max(len(values[0]), 1)
 
-    # URL-encode sheet name for API calls
+    _ensure_worksheet(sid, sheet_name, len(values), width)
+
     encoded_name = urllib.parse.quote(sheet_name)
-
-    # Clear existing data
-    try:
-        _api("POST", f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}!A1:Z500:clear", {})
-    except Exception:
-        pass
-
-    # Write data — convert all values to strings to handle Timestamps, dates, etc.
-    values = [df.columns.values.tolist()] + df.astype(str).values.tolist()
+    _api(
+        "POST",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}:clear",
+        {},
+    )
     _api(
         "PUT",
-        f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}!A1:Z{len(values)}?valueInputOption=USER_ENTERED",
+        f"https://sheets.googleapis.com/v4/spreadsheets/{sid}/values/{encoded_name}!A1:{_col_letter(width)}{len(values)}?valueInputOption=RAW",
         {"values": values},
     )
     print(f"[GSHEETS] Pushed {len(df)} rows to '{sheet_name}'")

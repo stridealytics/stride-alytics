@@ -5,11 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+import json
 
-from app.api.deps import Ctx, get_ctx
+from fastapi import APIRouter, Depends, Query, Response
+
+from app.api.deps import Ctx, get_ctx, to_csv
 
 router = APIRouter()
+
+AUDIT_CSV_COLUMNS = ["occurred_at", "action", "entity", "entity_id", "before", "after"]
 
 
 @router.get("/signals")
@@ -58,3 +62,44 @@ async def list_audit(
         offset=offset,
     )
     return {"success": True, "data": rows, "total": total, "limit": limit, "offset": offset}
+
+
+# NOTE: declared as a separate path so "audit.csv" is never parsed as a filter value.
+@router.get("/audit.csv")
+async def export_audit(
+    start: datetime | None = None,
+    end: datetime | None = None,
+    entity: str | None = Query(default=None, max_length=32),
+    action: str | None = Query(default=None, max_length=32),
+    ctx: Ctx = Depends(get_ctx),
+) -> Response:
+    """CSV export of the audit log for a period (BR-064). Newest first; before/after as JSON."""
+    # Page through everything so a long period is never silently cut off.
+    rows: list[dict[str, Any]] = []
+    page = 1_000
+    while True:
+        chunk, total = await ctx.repo.list_audit(
+            ctx.user_id,
+            start=start,
+            end=end,
+            entity=entity,
+            action=action,
+            limit=page,
+            offset=len(rows),
+        )
+        rows.extend(chunk)
+        if not chunk or len(rows) >= total:
+            break
+    flat = [
+        {
+            **r,
+            "before": json.dumps(r["before"], sort_keys=True),
+            "after": json.dumps(r["after"], sort_keys=True),
+        }
+        for r in rows
+    ]
+    return Response(
+        content=to_csv(AUDIT_CSV_COLUMNS, flat),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="audit.csv"'},
+    )

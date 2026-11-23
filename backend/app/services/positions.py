@@ -9,6 +9,7 @@ from typing import Any
 from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import Ctx
+from app.domain.thresholds import DEFAULTS, Thresholds
 from app.domain.alerts import (
     MarketInput,
     PositionAlert,
@@ -47,7 +48,10 @@ async def _market(provider: PositionDataProvider, t: Trade) -> MarketInput:
 
 
 async def evaluate_open_positions(
-    ctx: Ctx, provider: PositionDataProvider, regime_score: float | None
+    ctx: Ctx,
+    provider: PositionDataProvider,
+    regime_score: float | None,
+    limits: Thresholds = DEFAULTS,
 ) -> list[PositionAlert]:
     """One alert record per open trade, most urgent first."""
     trades = await ctx.repo.open_trades(ctx.user_id)
@@ -63,6 +67,7 @@ async def evaluate_open_positions(
             markets[(t.symbol, t.trade_type, t.strike, t.expiry)],
             today=today,
             regime_score=regime_score,
+            limits=limits,
         )
         for t in trades
     ]

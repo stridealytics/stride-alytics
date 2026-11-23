@@ -37,6 +37,7 @@ class Trade:
     band: str | None = None  # 'A'..'E'
     risk_amount: float | None = None
     credit: float | None = None
+    entry_ev: float | None = None  # expected value in dollars when the trade was opened (FR-920)
 
 
 @dataclass
@@ -120,6 +121,7 @@ def portfolio_trade_breakdown(trades: Iterable[Trade]) -> list[dict[str, Any]]:
                 "band": t.band,
                 "risk_amount": t.risk_amount,
                 "credit": t.credit,
+                "entry_ev": t.entry_ev,
             }
         )
     return out

@@ -17,8 +17,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
-from app.config import settings
-from app.services.auth import dev_auth_enabled, verify_supabase_jwt
+from app.services.auth import auth_configured, dev_auth_enabled, verify_supabase_jwt
 from app.utils.logger import get_logger
 
 log = get_logger(__name__)
@@ -63,10 +62,10 @@ async def verify_jwt(
             log.warning("auth.dev_token_used", user_id=user_id)
             return CurrentUser(user_id=user_id)
 
-    if not settings.SUPABASE_JWT_SECRET:
+    if not auth_configured():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Auth not configured (SUPABASE_JWT_SECRET missing)",
+            detail="Auth not configured (set SUPABASE_JWT_SECRET or SUPABASE_URL)",
         )
 
     try:

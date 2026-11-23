@@ -1,5 +1,5 @@
 # Alpha_Business_Logic.md
-### Complete Business Logic Specification for the Alpha Option Trading System  
+### Complete Business Logic Specification for the Alpha Stock and Options Screening Pipeline  
 ### Includes Mermaid Architecture & Logic Diagrams
 
 ---
@@ -27,7 +27,7 @@ flowchart TD
 
 # 1. Overview
 
-Alpha is a fully automated, rules‑driven option trading system that:
+Alpha is a fully automated, rules‑driven stock and options screening pipeline that:
 
 - Scores tickers  
 - Classifies risk  
@@ -117,8 +117,9 @@ Higher score = safer, more liquid, more predictable underlying.
 
 ### Purpose
 - Band A/B → weekly watchlist  
-- Band C → conditional trades  
+- Band C → conditional trades (blocked in a DEFENSIVE regime by the backend gate)  
 - Band D/E → excluded from selling premium  
+- Enforcement: `apply_daily_filters` keeps only bands A–C; the backend gate (BR-024) rejects band E always and band D unless `allow_band_d` is set  
 
 ---
 
@@ -296,7 +297,7 @@ flowchart LR
 
 # Final Summary
 
-Alpha is a rules‑driven, automated option trading system that:
+Alpha is a rules‑driven, automated stock and options screening pipeline that:
 
 - Scores tickers  
 - Classifies risk  

@@ -9,7 +9,7 @@ import uvicorn
 
 app = FastAPI(
     title="StrideAlytics Mock API",
-    description="Mock backend for the StrideAlytics Options Selling Platform",
+    description="Mock backend for the StrideAlytics Stock and Options Trading System",
     version="1.0.0"
 )
 

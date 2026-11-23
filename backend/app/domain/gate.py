@@ -10,8 +10,10 @@ Two parts, combined by :func:`evaluate_entry`:
 
 Documented assumptions: the market counts as "down" when SPY is below its 200-day average
 (BR-010); the regime counts as deteriorated below a score of 25 (BR-015). Rules about equities
-(market cap, earnings) are skipped for ETFs and indices. BR-011 (assignment alarms) and BR-013
-(correlation) are reported as *not evaluated* until the alert engine and risk analytics exist.
+(market cap, earnings) are skipped for ETFs and indices. BR-011 (assignment alarms) is reported
+as *not evaluated* when open positions cannot be priced. BR-013 (correlation with an open
+position) needs a candidate, so the master gate alone lists it as not evaluated; the entry gate
+checks it when return histories are supplied.
 """
 
 from __future__ import annotations
@@ -23,12 +25,14 @@ from typing import Any
 from app.domain.allocation import growth_locked
 from app.domain.portfolio_risk import entry_risk_reason
 from app.domain.regime_score import UNKNOWN, RegimeScore
+from app.domain.thresholds import DEFAULTS, Thresholds
 
-SPREAD_MAX_PCT = 10.0  # BR-017 (percent of mid price)
-OPEN_INTEREST_MIN = 500  # BR-018
-MARKET_CAP_MIN = 2_000_000_000  # BR-019
+# Defaults; a user can change these in Settings (see ``thresholds.py``).
+SPREAD_MAX_PCT = DEFAULTS.spread_max_pct  # BR-017 (percent of mid price)
+OPEN_INTEREST_MIN = DEFAULTS.open_interest_min  # BR-018
+MARKET_CAP_MIN = DEFAULTS.market_cap_min  # BR-019
 BASE_MARKET_CAP_MIN = 10_000_000_000  # BR-042: Conservative/Base layer profile
-EARNINGS_WINDOW_DAYS = 14  # BR-020
+EARNINGS_WINDOW_DAYS = DEFAULTS.earnings_window_days  # BR-020
 REGIME_BLOCK_SCORE = 25.0  # BR-015
 
 NON_EQUITY_TYPES = {"ETF", "INDEX", "MUTUALFUND", "CURRENCY", "CRYPTOCURRENCY", "FUTURE"}
@@ -81,6 +85,7 @@ def evaluate_master(
     min_equity: float,
     assignment_alarms: int | None = None,
     capital_at_risk: float | None = None,
+    limits: Thresholds = DEFAULTS,
 ) -> GateResult:
     """Account/market-level rules."""
     reasons: list[GateReason] = []
@@ -128,7 +133,7 @@ def evaluate_master(
             )
     if capital_at_risk is not None:
         checked.append("BR-081")
-        reason = entry_risk_reason(equity, capital_at_risk, None)
+        reason = entry_risk_reason(equity, capital_at_risk, None, limits)
         if reason:
             reasons.append(GateReason("BR-081", reason))
     return _result(reasons, checked, not_evaluated)
@@ -141,13 +146,34 @@ def evaluate_symbol(
     layer: str | None,
     news_flag: bool,
     today: date,
+    limits: Thresholds = DEFAULTS,
+    correlations: dict[str, float | None] | None = None,
 ) -> GateResult:
-    """Rules about the specific symbol/contract."""
+    """Rules about the specific symbol/contract.
+
+    ``correlations`` maps each open position's symbol to its correlation with this candidate
+    (None = could not be computed). Leave it out to skip BR-013; an empty dict means nothing is
+    held, so there is nothing to be correlated with.
+    """
     reasons: list[GateReason] = []
     checked: list[str] = ["BR-021"]
 
     def unknown(rule_id: str, what: str) -> None:
         reasons.append(GateReason(rule_id, f"Data unavailable: could not verify {what}.", "data"))
+
+    if correlations is not None:
+        checked.append("BR-013")
+        for held, value in correlations.items():
+            if value is None:
+                unknown("BR-013", f"the correlation with open position {held}")
+            elif value > limits.correlation_max:
+                reasons.append(
+                    GateReason(
+                        "BR-013",
+                        f"{data.symbol} is {value:.2f} correlated with open position {held} "
+                        f"(limit {limits.correlation_max:g}).",
+                    )
+                )
 
     if news_flag:
         reasons.append(GateReason("BR-021", f"{data.symbol} has a news flag set."))
@@ -163,9 +189,12 @@ def evaluate_symbol(
         if data.market_cap is None:
             unknown("BR-019", "market cap")
         else:
-            if data.market_cap < MARKET_CAP_MIN:
+            if data.market_cap < limits.market_cap_min:
                 reasons.append(
-                    GateReason("BR-019", f"Market cap ${data.market_cap / 1e9:.1f}B is below $2B.")
+                    GateReason(
+                        "BR-019",
+                        f"Market cap ${data.market_cap / 1e9:.1f}B is below ${limits.market_cap_min / 1e9:g}B.",
+                    )
                 )
             if layer == "base":
                 checked.append("BR-042")
@@ -178,11 +207,11 @@ def evaluate_symbol(
                     )
         if data.next_earnings is None or data.next_earnings < today:
             unknown("BR-020", "the next earnings date")
-        elif (data.next_earnings - today).days <= EARNINGS_WINDOW_DAYS:
+        elif (data.next_earnings - today).days <= limits.earnings_window_days:
             reasons.append(
                 GateReason(
                     "BR-020",
-                    f"Earnings on {data.next_earnings.isoformat()} are within {EARNINGS_WINDOW_DAYS} days.",
+                    f"Earnings on {data.next_earnings.isoformat()} are within {limits.earnings_window_days:g} days.",
                 )
             )
 
@@ -190,19 +219,20 @@ def evaluate_symbol(
         checked += ["BR-017", "BR-018"]
         if data.spread_pct is None:
             unknown("BR-017", "the bid/ask spread")
-        elif data.spread_pct > SPREAD_MAX_PCT:
+        elif data.spread_pct > limits.spread_max_pct:
             reasons.append(
                 GateReason(
                     "BR-017",
-                    f"Bid/ask spread {data.spread_pct:.1f}% is above {SPREAD_MAX_PCT:g}%.",
+                    f"Bid/ask spread {data.spread_pct:.1f}% is above {limits.spread_max_pct:g}%.",
                 )
             )
         if data.open_interest is None:
             unknown("BR-018", "open interest")
-        elif data.open_interest < OPEN_INTEREST_MIN:
+        elif data.open_interest < limits.open_interest_min:
             reasons.append(
                 GateReason(
-                    "BR-018", f"Open interest {data.open_interest} is below {OPEN_INTEREST_MIN}."
+                    "BR-018",
+                    f"Open interest {data.open_interest} is below {limits.open_interest_min:g}.",
                 )
             )
     return _result(reasons, checked, [])
@@ -220,23 +250,63 @@ def evaluate_entry(
     today: date,
     assignment_alarms: int | None = None,
     capital_at_risk: float | None = None,
+    limits: Thresholds = DEFAULTS,
+    correlations: dict[str, float | None] | None = None,
+    band: str | None = None,
 ) -> GateResult:
-    """Master gate + symbol gate + layer lock, merged."""
+    """Master gate + symbol gate + layer lock + band rule, merged."""
     master = evaluate_master(
         regime,
         equity=equity,
         min_equity=min_equity,
         assignment_alarms=assignment_alarms,
         capital_at_risk=capital_at_risk,
+        limits=limits,
     )
     symbol = evaluate_symbol(
-        symbol_data, trade_type=trade_type, layer=layer, news_flag=news_flag, today=today
+        symbol_data,
+        trade_type=trade_type,
+        layer=layer,
+        news_flag=news_flag,
+        today=today,
+        limits=limits,
+        correlations=correlations,
     )
+    not_evaluated = [r for r in master.not_evaluated if r != "BR-013" or correlations is None]
     reasons = master.reasons + symbol.reasons
     checked = master.checked + symbol.checked
+    state = regime.state if regime is not None else UNKNOWN
     if layer == "growth":
         checked.append("BR-023")
-        state = regime.state if regime is not None else UNKNOWN
         if growth_locked(state):
             reasons.append(GateReason("BR-023", f"The Growth layer is locked in a {state} regime."))
-    return _result(reasons, checked, master.not_evaluated)
+    if band is not None:
+        checked.append("BR-024")
+        reasons += band_reasons(band, state, limits)
+    return _result(reasons, checked, not_evaluated)
+
+
+def band_reasons(band: str, regime_state: str, limits: Thresholds = DEFAULTS) -> list[GateReason]:
+    """Risk-tier rule (BR-024): A and B pass, C is regime-dependent, D is excluded, E is rejected.
+
+    * E (high risk): always rejected, no setting overrides it.
+    * D (speculative): rejected unless the user sets ``allow_band_d`` in Settings.
+    * C (moderate risk): rejected in a DEFENSIVE regime.
+    """
+    band = band.upper()
+    if band == "E":
+        return [
+            GateReason("BR-024", "Band E (high risk) is auto-rejected by the Do-Not-Trade rules.")
+        ]
+    if band == "D" and not limits.allow_band_d:
+        return [
+            GateReason(
+                "BR-024",
+                "Band D (speculative) is excluded by default; allow it in Settings to trade it.",
+            )
+        ]
+    if band == "C" and regime_state == "DEFENSIVE":
+        return [
+            GateReason("BR-024", "Band C (moderate risk) is not allowed in a DEFENSIVE regime.")
+        ]
+    return []

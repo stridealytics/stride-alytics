@@ -1,4 +1,7 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
+
+import { downloadFile } from "../api/download";
 
 import { Badge, Button, Card, Input, PageHeader, Select, Table } from "../components/ui";
 import { useAuditLog, useSignalLog } from "../hooks/queries";
@@ -121,8 +124,21 @@ export function SignalLogPage() {
         <Card
           title="Changes"
           actions={
-            <Select
-              label="Entity"
+            <div className="flex items-end gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const q = entity ? `?entity=${encodeURIComponent(entity)}` : "";
+                  downloadFile(`/logs/audit.csv${q}`, "audit.csv").catch(() =>
+                    toast.error("Could not export the audit trail"),
+                  );
+                }}
+              >
+                Export CSV
+              </Button>
+              <Select
+                label="Entity"
               value={entity}
               onChange={(e) => {
                 setEntity(e.target.value);
@@ -135,7 +151,8 @@ export function SignalLogPage() {
               <option value="watchlist">Watchlists</option>
               <option value="settings">Settings</option>
               <option value="symbol">Symbols</option>
-            </Select>
+              </Select>
+            </div>
           }
         >
           <Table<AuditLogEntry>

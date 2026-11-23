@@ -88,6 +88,7 @@ class TradeOut(BaseModel):
     band: Band | None = None
     risk_amount: float | None = None
     credit: float | None = None
+    entry_ev: float | None = None
 
 
 class TradePage(BaseModel):

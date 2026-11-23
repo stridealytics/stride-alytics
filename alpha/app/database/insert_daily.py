@@ -24,9 +24,12 @@ CSV_TO_DB_COLUMNS = {
     "Quality Score (1-5)": "quality_score",
     "Trend (Above/Below 20/50/200 EMA)": "trend",
     "Trend": "trend",
+    "Option Score": "option_score",
     "Band": "band",
     "Sector": "sector",
     "Market Cap": "market_cap",
+    "Float Shares": "float_shares",
+    "Beta": "beta",
     "Strategy Tag": "strategy",
 }
 
@@ -60,17 +63,17 @@ def _convert_timestamps(obj):
 def clear_all_tables() -> None:
     """
     Clear all data from the daily_metrics, option_scores, bands, and weekly_watchlist tables.
-    Use this to reset corrupted data in Supabase.
+
+    Only for resetting corrupted data in a brand-new database. Once the initial load is complete
+    the data is protected and this raises ``DestructiveOperationBlockedError`` (see ``safety.py``).
     """
+    from .safety import require_unlocked
+
     client = get_supabase_client()
-    try:
-        client.table("daily_metrics").delete().neq("ticker", "").execute()
-        client.table("option_scores").delete().neq("ticker", "").execute()
-        client.table("bands").delete().neq("ticker", "").execute()
-        client.table("weekly_watchlist").delete().neq("ticker", "").execute()
-        print("[INFO] All tables cleared successfully")
-    except Exception as e:
-        print(f"[WARNING] Could not clear tables: {e}")
+    require_unlocked("clear_all_tables", client)
+    for table in DAILY_TABLES:
+        client.table(table).delete().neq("ticker", "").execute()
+    print("[INFO] All tables cleared")
 
 
 def _map_columns(df: pd.DataFrame, day: str | None = None) -> pd.DataFrame:
@@ -155,18 +158,83 @@ def _band_rows(df: pd.DataFrame, day: str | None = None) -> list[dict]:
     return _rows(df, ["date", "ticker", "band"], day)
 
 
-def replace_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = None) -> dict:
-    """Replace one day's rows in all four daily tables.
+PAGE = 1000
+CHUNK = 500
 
-    All payloads are built *before* anything is deleted, so a mapping/serialisation
-    problem can never leave the day empty. Deletes use ``date LIKE 'YYYY-MM-DD%'`` so
-    legacy rows that were stored with a time component are cleaned up too. Any
-    Supabase error is raised (never swallowed).
 
-    The Supabase REST API has no multi-table transaction, so a network failure
-    between the deletes and the inserts can still leave a partial day; the caller
-    should treat an exception as "re-run needed" (``main`` alerts and exits non-zero).
+def _same(a, b) -> bool:
+    """Equal for our purposes: both empty, numerically equal, or the same text."""
+    if a is None or b is None:
+        return a is None and b is None
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool):
+        # abs_tol covers Postgres rounding to the column scale (the narrowest is NUMERIC(x,4)),
+        # so a re-run does not rewrite a value that is stored rounded.
+        return math.isclose(a, b, rel_tol=1e-9, abs_tol=5e-5)
+    return str(a) == str(b)
+
+
+def plan_table(existing: list[dict], payload: list[dict]) -> tuple[list[dict], list[tuple]]:
+    """Pure: which payload rows to insert, and which existing tickers to update (and with what).
+
+    A row is inserted only if its ticker has no row for the day yet. For a ticker that has one,
+    only the columns whose value actually changed are updated; an identical row is left alone.
+    An empty new value never overwrites a stored one, so a partial re-fetch cannot erase good data.
     """
+    by_ticker = {str(r["ticker"]).upper(): r for r in existing}
+    inserts: list[dict] = []
+    updates: list[tuple] = []  # (ticker, changed columns)
+    for row in payload:
+        current = by_ticker.get(str(row["ticker"]).upper())
+        if current is None:
+            inserts.append(row)
+            continue
+        changed = {
+            c: v
+            for c, v in row.items()
+            if c not in ("ticker", "date")
+            and not (v is None and current.get(c) is not None)
+            and not _same(v, current.get(c))
+        }
+        if changed:
+            # Use the stored spelling: the match above ignores case, the UPDATE's .eq() does not.
+            updates.append((current["ticker"], changed))
+    return inserts, updates
+
+
+def _fetch_day(client, table: str, day: str) -> list[dict]:
+    rows: list[dict] = []
+    start = 0
+    while True:
+        page = (
+            client.table(table)
+            .select("*")
+            .like("date", f"{day}%")
+            .range(start, start + PAGE - 1)
+            .execute()
+            .data
+            or []
+        )
+        rows.extend(page)
+        if len(page) < PAGE:
+            return rows
+        start += PAGE
+
+
+def sync_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = None) -> dict:
+    """Write one day's rows by adding and updating only what is new or changed.
+
+    Nothing is wiped: for each table the day's existing rows are read, then new tickers are
+    inserted and changed rows get an update of just the changed columns. Re-running with the same
+    data writes nothing. A ticker missing from today's payload keeps its row (history). The one
+    exception is ``weekly_watchlist``, whose rows for tickers that dropped off today's list are
+    removed one by one (never the whole day; if that would empty the day it is skipped).
+
+    All payloads are built before anything is written, and Supabase errors are raised. In a dry run
+    (``ALPHA_DRY_RUN=1``) the same report is computed from what is stored, but nothing is written.
+    """
+    from .safety import dry_run
+
+    read_only = dry_run()
     day = day or today_str()
     payload = {
         "daily_metrics": _rows(df_bands, DAILY_METRICS_COLUMNS, day),
@@ -176,14 +244,37 @@ def replace_day(df_bands: pd.DataFrame, weekly: pd.DataFrame, day: str | None = 
     }
 
     client = get_supabase_client()
+    report: dict = {}
     for table in DAILY_TABLES:
-        client.table(table).delete().like("date", f"{day}%").execute()
-    for table in DAILY_TABLES:
-        rows = payload[table]
-        if rows:
-            client.table(table).insert(rows).execute()
+        existing = _fetch_day(client, table, day)
+        inserts, updates = plan_table(existing, payload[table])
+        if not read_only:
+            for i in range(0, len(inserts), CHUNK):
+                client.table(table).insert(inserts[i : i + CHUNK]).execute()
+            for ticker, changed in updates:
+                client.table(table).update(changed).eq("ticker", ticker).like(
+                    "date", f"{day}%"
+                ).execute()
 
-    return {table: len(rows) for table, rows in payload.items()}
+        stale = 0
+        if table == "weekly_watchlist" and payload[table]:
+            keep = {str(r["ticker"]).upper() for r in payload[table]}
+            stored = {str(r["ticker"]) for r in existing}  # stored spelling, for the .in_() match
+            drop = sorted(t for t in stored if t.upper() not in keep)
+            if drop and len(drop) < len(stored):
+                if not read_only:
+                    for i in range(0, len(drop), CHUNK):
+                        client.table(table).delete().in_("ticker", drop[i : i + CHUNK]).like(
+                            "date", f"{day}%"
+                        ).execute()
+                stale = len(drop)
+        report[table] = {
+            "inserted": len(inserts),
+            "updated": len(updates),
+            "unchanged": len(payload[table]) - len(inserts) - len(updates),
+            "removed": stale,
+        }
+    return report
 
 
 def insert_daily_metrics(df: pd.DataFrame) -> None:
@@ -216,7 +307,7 @@ def insert_weekly_watchlist(df: pd.DataFrame) -> None:
 
 def insert_trades(df: pd.DataFrame) -> None:
     """
-    Insert trades into Supabase trades table.
+    Insert trades into the Supabase alpha_trades table (not the backend's ``trades``).
 
     Parameters
     ----------
@@ -236,4 +327,4 @@ def insert_trades(df: pd.DataFrame) -> None:
     ]
     rows = _rows(df, trade_cols)
     if rows:
-        get_supabase_client().table("trades").insert(rows).execute()
+        get_supabase_client().table("alpha_trades").insert(rows).execute()

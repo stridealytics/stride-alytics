@@ -18,12 +18,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import date
 from typing import Any
 
+from app.domain.thresholds import DEFAULTS, Thresholds
+
 SEVERITIES = ("normal", "watch", "warning", "critical")
 CONTRACT_MULTIPLIER = 100
 
-DTE_WATCH = 7
-DTE_WARNING = 3
-DELTA_ASSIGNMENT = 0.70  # BR-052: assignment alarm
+DTE_WATCH = DEFAULTS.dte_watch  # defaults; a user can change these in Settings
+DTE_WARNING = DEFAULTS.dte_warning
+DELTA_ASSIGNMENT = DEFAULTS.delta_assignment  # BR-052: assignment alarm
 DELTA_WARNING = 0.50
 DELTA_WATCH = {"base": 0.30, "growth": 0.40}  # per-layer tolerance (BR-053)
 DEEP_ITM_PCT = 5.0  # percent in the money counted as an assignment alarm even without a delta
@@ -124,6 +126,7 @@ def evaluate_position(
     *,
     today: date,
     regime_score: float | None = None,
+    limits: Thresholds = DEFAULTS,
 ) -> PositionAlert:
     reasons: list[AlertReason] = []
 
@@ -146,9 +149,9 @@ def evaluate_position(
                 "close",
                 "BR-050",
             )
-        elif dte <= DTE_WARNING:
+        elif dte <= limits.dte_warning:
             add("dte", "warning", f"Only {dte} day(s) to expiry.", "roll", "BR-050")
-        elif dte <= DTE_WATCH:
+        elif dte <= limits.dte_watch:
             add("dte", "watch", f"{dte} days to expiry.", "hold", "BR-050")
 
     # ---- live data rules
@@ -184,11 +187,11 @@ def evaluate_position(
 
     if market.available and option and delta is not None:
         magnitude = abs(delta)
-        if short and magnitude >= DELTA_ASSIGNMENT:
+        if short and magnitude >= limits.delta_assignment:
             add(
                 "assignment_risk",
                 "critical",
-                f"Delta {magnitude:.2f} is at or above {DELTA_ASSIGNMENT:g}: assignment alarm.",
+                f"Delta {magnitude:.2f} is at or above {limits.delta_assignment:g}: assignment alarm.",
                 "roll" if (dte or 0) > 0 else "close",
                 "BR-052",
             )

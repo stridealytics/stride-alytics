@@ -1,5 +1,5 @@
 """
-Alpha — StrideAlytics Option Trading System Pipeline.
+Alpha — StrideAlytics Stock and Options Screening Pipeline.
 
 Orchestrates: load data (DB or CSV) → score options → compute bands → apply filters →
 generate watchlist → insert into Supabase → push to Google Sheets.
@@ -15,17 +15,20 @@ Failure policy
 """
 
 import os
+import sys
 import time
 
 import pandas as pd
 
 from app.utils.load_data import load_from_supabase, load_local_csv
+from app.preflight import check_environment
 from app.utils.notify import send_alert
 from app.screener.compute_option_score import compute_option_score
 from app.screener.apply_filters import apply_daily_filters
 from app.screener.weekly_watchlist import weekly_watchlist, compute_strategy_for_all
 from app.screener.band_pipeline import compute_bands
-from app.database.insert_daily import replace_day
+from app.database.insert_daily import sync_day
+from app.database.safety import dry_run
 from app.sheets.push_to_sheets import push_to_sheet
 
 # Warn when the CSV fallback is older than this many days (its values would be
@@ -81,7 +84,20 @@ def _sample_data() -> pd.DataFrame:
 
 
 def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
-    """Return ``(source, df)`` with source in {'supabase', 'csv', 'sample'}."""
+    """Return ``(source, df)`` with source in {'live', 'supabase', 'csv', 'sample'}."""
+    if os.getenv("INGEST_LIVE") == "1":
+        print("Fetching fresh data from yfinance (INGEST_LIVE=1)...")
+        try:
+            from app.ingest import run_ingestion_pipeline
+
+            df = run_ingestion_pipeline()
+            if not df.empty:
+                return "live", df
+            print("[WARNING] Live fetch returned no rows; falling back.")
+        except Exception as e:
+            print(f"[WARNING] Live fetch failed ({e}); falling back.")
+            send_alert(f"Alpha: live fetch failed ({e}); using stored data instead.")
+
     print("Loading data from Supabase...")
     df = load_from_supabase()
     if not df.empty:
@@ -93,6 +109,13 @@ def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
         path = df.attrs.get("source_path")
         if path and os.path.exists(path):
             age_days = (time.time() - os.path.getmtime(path)) / 86400
+            if age_days > MAX_CSV_AGE_DAYS and os.getenv("INGEST_LIVE") == "1":
+                # Live ingestion is the real source. An old file stamped as today's data would
+                # silently replace it, so fail the run instead (the alert comes from main()).
+                raise NoDataError(
+                    f"Live fetch failed and {path} is {age_days:.0f} days old (limit "
+                    f"{MAX_CSV_AGE_DAYS}); refusing to store it as today's data."
+                )
             if age_days > MAX_CSV_AGE_DAYS:
                 msg = (
                     f"[WARNING] {path} is {age_days:.0f} days old; today's run will stamp its "
@@ -112,10 +135,36 @@ def _load_data(allow_sample: bool) -> tuple[str, pd.DataFrame]:
     )
 
 
+def _after_load(df: pd.DataFrame) -> None:
+    """Bookkeeping after a successful write: fill each ticker's sector once, then protect the
+    data. Failures here are warnings; the data itself is already written."""
+    try:
+        from app.database import safety, universe
+
+        if safety.dry_run():
+            print("[INFO] Dry run: sectors and the protection flag were not touched.")
+            return
+        if "Sector" in df.columns:
+            sectors = dict(zip(df["Ticker"].astype(str).str.upper(), df["Sector"]))
+            filled = universe.fill_sectors({t: s for t, s in sectors.items() if isinstance(s, str)})
+            if filled:
+                print(f"Stored the sector for {filled} new ticker(s).")
+        if universe.active_tickers() and safety.mark_loaded():
+            print("[INFO] Initial load complete: bulk deletes are now blocked.")
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARNING] Could not update the universe bookkeeping ({e}). Is the schema applied?")
+
+
 def run_system(allow_sample: bool | None = None) -> None:
     """Run the full daily option screening pipeline. Raises on failure."""
     if allow_sample is None:
         allow_sample = os.getenv("ALLOW_SAMPLE_DATA") == "1"
+
+    check = check_environment(allow_sample=allow_sample)
+    for note in check.notes:
+        print(f"[INFO] {note}")
+    if not check.ok:
+        raise RuntimeError("Setup incomplete:\n  - " + "\n  - ".join(check.errors))
 
     # 1. Load raw data — Supabase first, then CSV, then (opt-in only) sample data
     source, df = _load_data(allow_sample)
@@ -148,13 +197,18 @@ def run_system(allow_sample: bool | None = None) -> None:
         print("Sample data: skipping Supabase and Google Sheets writes.")
         return
 
-    # 7. Replace today's rows in Supabase. Errors propagate (non-zero exit + alert).
+    # 7. Add and update only what is new or changed. Errors propagate (non-zero exit + alert).
     print("Writing data to Supabase...")
-    counts = replace_day(df_bands, weekly)
-    print(f"Supabase updated: {counts}")
+    report = sync_day(df_bands, weekly)
+    print(f"Supabase updated: {report}")
+    _after_load(df_bands)
 
     # 8. Push to Google Sheets (only if configured). Failures alert but don't fail the run.
-    if not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):
+    if dry_run():
+        print("Dry run: Google Sheets not pushed.")
+    elif check.skip_sheets:
+        print("Google Sheets skipped (placeholder credentials).")
+    elif not os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID"):
         print("Google Sheets not configured (GOOGLE_SHEETS_SPREADSHEET_ID unset) — skipping.")
     elif daily.empty:
         print("No candidates passed the daily filters — skipping Google Sheets.")
@@ -169,8 +223,19 @@ def run_system(allow_sample: bool | None = None) -> None:
             send_alert(f"Alpha: Google Sheets push failed: {e}")
 
 
-def main() -> int:
-    """CLI entry point: returns a non-zero exit code (and alerts) on failure."""
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: returns a non-zero exit code (and alerts) on failure.
+
+    ``--dry-run`` fetches and computes everything but writes nothing (no Supabase, no Sheets).
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    # A print of a character the console cannot encode (emoji on Windows) must never fail a run.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+    if "--dry-run" in argv:
+        os.environ["ALPHA_DRY_RUN"] = "1"
+        print("[INFO] DRY RUN: nothing will be written to Supabase or Google Sheets.")
     try:
         run_system()
     except Exception as e:  # noqa: BLE001 - top-level handler: report everything

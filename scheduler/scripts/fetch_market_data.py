@@ -25,11 +25,11 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 TRACKED_SYMBOLS = ["SPY", "QQQ", "AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA", "NVDA", "AMD"]
 
 
-async def fetch_and_cache_all():
+async def fetch_and_cache_all() -> int:
     """Fetch option chains for all tracked symbols and upsert into Supabase."""
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("✗ SUPABASE_URL and SUPABASE_KEY must be set")
-        sys.exit(1)
+        print("✗ SUPABASE_URL and SUPABASE_KEY must be set", file=sys.stderr)
+        return 1
 
     from app.services.screener import fetch_and_cache_supabase
 
@@ -50,11 +50,12 @@ async def fetch_and_cache_all():
 
     print(f"\n✓ Done. Successfully cached {success_count}/{len(TRACKED_SYMBOLS)} symbols to Supabase")
     print(f"  Date: {date.today().isoformat()}")
-    print(f"  Supabase URL: {SUPABASE_URL[:30]}...")
+    # A run that stored nothing must fail the workflow (and trigger the Slack alert).
+    return 0 if success_count > 0 else 1
 
 
 def main():
-    asyncio.run(fetch_and_cache_all())
+    sys.exit(asyncio.run(fetch_and_cache_all()))
 
 
 if __name__ == "__main__":

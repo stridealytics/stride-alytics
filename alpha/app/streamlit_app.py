@@ -1,5 +1,5 @@
 """
-Streamlit dashboard for the Option Trading System.
+Streamlit dashboard for the Stock and Options Screening Pipeline.
 
 Displays daily metrics, option scores, volatility data, and trades
 from Supabase (real scanned data).
@@ -13,8 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.database.supabase_client import get_supabase_client
-from app.utils.date_utils import format_date_mmm_dd_yyyy, normalize_date_for_merge
-
+from app.utils.date_utils import format_date_mmm_dd_yyyy
 
 _PAGE_SIZE = 1000  # Supabase/PostgREST returns at most 1000 rows per request
 
@@ -28,9 +27,7 @@ def _load_from_supabase(table: str) -> pd.DataFrame:
     try:
         client = get_supabase_client()
 
-        latest_resp = (
-            client.table(table).select("date").order("date", desc=True).limit(1).execute()
-        )
+        latest_resp = client.table(table).select("date").order("date", desc=True).limit(1).execute()
         latest = (latest_resp.data or [{}])[0].get("date")
         if not latest:
             return pd.DataFrame()
@@ -58,45 +55,47 @@ def _load_from_supabase(table: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=600)  # data changes once a day; fewer Supabase reads
 def get_daily_metrics() -> pd.DataFrame:
     """Load daily metrics from Supabase - already contains all computed fields."""
     daily = _load_from_supabase("daily_metrics")
     return daily
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=600)  # data changes once a day; fewer Supabase reads
 def get_option_scores() -> pd.DataFrame:
     """Load option scores - uses daily_metrics which has all computed fields."""
     df = _load_from_supabase("daily_metrics")
     if df.empty:
         return pd.DataFrame()
-    
+
     # Normalize date format for display
     if "date" in df.columns:
         df["date"] = df["date"].astype(str).str[:10]
-    
+
     # Rename to display columns
-    df = df.rename(columns={
-        "ticker": "Ticker",
-        "date": "Date",
-        "option_score": "Option Score",
-        "trend": "Trend",
-        "strategy": "Strategy Tag",
-        "band": "Band",
-    })
-    
+    df = df.rename(
+        columns={
+            "ticker": "Ticker",
+            "date": "Date",
+            "option_score": "Option Score",
+            "trend": "Trend",
+            "strategy": "Strategy Tag",
+            "band": "Band",
+        }
+    )
+
     # Format Date column
     if "Date" in df.columns:
         df["Date"] = df["Date"].apply(format_date_mmm_dd_yyyy)
-    
+
     # Return only the columns we need for this tab
     cols_needed = ["Ticker", "Date", "Option Score", "Trend", "Strategy Tag", "Band"]
     available = [c for c in cols_needed if c in df.columns]
     return df[available].copy()
 
 
-@st.cache_data
+@st.cache_data(ttl=600)
 def get_trades() -> pd.DataFrame:
     return pd.DataFrame()
 
@@ -104,16 +103,16 @@ def get_trades() -> pd.DataFrame:
 def _normalize_daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
-    
+
     # Make a copy to avoid modifying the original DataFrame
     df = df.copy()
-    
+
     # Normalize date column to string format for consistent merging
     if "date" in df.columns:
         df["date"] = df["date"].astype(str).str[:10]  # Take just YYYY-MM-DD part
     if "next_earnings_date" in df.columns:
         df["next_earnings_date"] = df["next_earnings_date"].astype(str).str[:10]
-    
+
     rename_map = {
         "ticker": "Ticker",
         "date": "Date",
@@ -137,15 +136,16 @@ def _normalize_daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "sector": "Sector",
     }
     df = df.rename(columns=rename_map)
-    
+
     # Format Date columns after rename
     if "Date" in df.columns:
         df["Date"] = df["Date"].apply(format_date_mmm_dd_yyyy)
     if "Next Earnings Date" in df.columns:
         df["Next Earnings Date"] = df["Next Earnings Date"].apply(format_date_mmm_dd_yyyy)
-    
+
     # Compute Volatility Bias and IV vs HV columns
     if "IV Rank (1y)" in df.columns:
+
         def vol_bias(val):
             if pd.isna(val):
                 return "N/A"
@@ -154,9 +154,11 @@ def _normalize_daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
             if val <= 30:
                 return "Buy Premium"
             return "Neutral"
+
         df["Volatility Bias"] = df["IV Rank (1y)"].apply(vol_bias)
-    
+
     if "IV 30d" in df.columns and "HV 30d" in df.columns:
+
         def iv_vs_hv(row):
             iv_30d = row.get("IV 30d")
             hv_30d = row.get("HV 30d")
@@ -167,8 +169,9 @@ def _normalize_daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
             if iv_30d < hv_30d:
                 return "IV < HV (Buying better)"
             return "IV ≈ HV"
+
         df["IV vs HV"] = df.apply(iv_vs_hv, axis=1)
-    
+
     return df
 
 
@@ -182,7 +185,40 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.set_page_config(page_title="Option Trading System", layout="wide", page_icon="assets/icon/favicon.ico")
+st.set_page_config(
+    page_title="Stock and Options Screening", layout="wide", page_icon="assets/icon/favicon.ico"
+)
+
+
+def _require_password() -> None:
+    """Gate the dashboard behind DASHBOARD_PASSWORD (Streamlit secret or env var).
+
+    Streamlit Community Cloud apps are public by default. With no password configured the app
+    still opens (local use) but shows a warning, so a public deployment is never silent.
+    """
+    import hmac
+    import os
+
+    expected = os.getenv("DASHBOARD_PASSWORD")
+    try:
+        expected = expected or st.secrets.get("DASHBOARD_PASSWORD")
+    except Exception:  # noqa: BLE001 - no secrets file locally
+        pass
+    if not expected:
+        st.warning("DASHBOARD_PASSWORD is not set: this dashboard is open to anyone with the link.")
+        return
+    if st.session_state.get("_authed"):
+        return
+    entered = st.text_input("Password", type="password")
+    if entered and hmac.compare_digest(entered.encode(), str(expected).encode()):
+        st.session_state["_authed"] = True
+        st.rerun()
+    elif entered:
+        st.error("Wrong password.")
+    st.stop()
+
+
+_require_password()
 st.markdown("# StrideAlytics Alpha Dashboard")
 
 # Load data once at startup

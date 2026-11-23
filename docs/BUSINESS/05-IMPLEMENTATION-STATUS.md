@@ -17,7 +17,7 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 | **FR-140** Tunable regime inputs | **Built** | Weights tunable in Settings; applied to your live score (the shared history uses the defaults) |
 | **FR-200** Watchlist grid (price, IV, trend, risk) | Partial | Symbol, price, change %; IV/trend/risk metrics Planned |
 | **FR-210** Refresh | Partial | Auto-refresh every 60 s; manual refresh button not added |
-| **FR-220** CSV export | **Built** | Trades and watchlists |
+| **FR-220** CSV export | **Built** | Trades, watchlists and the audit trail |
 | **FR-230** Multi-watchlist grouping, quick search | Partial | Multiple lists built; quick symbol search Planned |
 | **FR-300–320** Option chain, strategy preview, risk preview | Chain **Built**; strategy preview and pre-entry risk preview Planned | Option Chain page: calls/puts per strike with Greeks and a probability-of-profit estimate; `source` shows when the chain is synthetic. The portfolio risk after a candidate trade is not previewed yet (the Sizing page and the gate cover entry) |
 | **FR-330, FR-840, FR-850** Block entries on DNT / show reasons | **Built** | `POST /trades` runs the gate and refuses a blocked entry with every reason; the UI shows them. Back-dated entries (more than 1 day old) are record-keeping and not gated |
@@ -32,8 +32,8 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 | **FR-710** Signal change log for regime shifts | **Built** | |
 | **FR-800** Real-time alerts (regime, DNT, exit) | Regime change and pipeline failures **Built** (Slack); exit alerts **Built** in the app (computed on request, no push) | DNT blocks are shown in the app and logged |
 | **FR-810** Email and push notifications | Planned / Out of scope | Webhooks instead of email; push is mobile |
-| **FR-820, FR-830** In-app blocked-trade warnings, configurable thresholds | Warnings **Built**; configurable thresholds Partial | Risk %, equity guardrail and band caps are configurable; the rule thresholds themselves (10% spread, OI 500, ...) are constants |
-| **FR-900–930** Trade flow, EV scoring, correlation | Trade flow, EV scoring **Built**; correlation **Planned** | Picks are ranked by expected value (PoP x gain - (1 - PoP) x loss). EV at entry is not stored on trades, so the calibration report shows realised results only. Backtesting and broker integration: **Planned** |
+| **FR-820, FR-830** In-app blocked-trade warnings, configurable thresholds | **Built** | Risk %, equity guardrail, band caps, regime weights and 10 rule thresholds (spread, open interest, market cap, earnings window, capital-at-risk, sector and net-delta limits, alert days, assignment delta) are configurable with allowed ranges, a warning when a safety rule is loosened, and audit rows. Not configurable yet: regime boundaries (40/70/25) and the alert profit and loss levels |
+| **FR-900–930** Trade flow, EV scoring, correlation | Trade flow, EV scoring, correlation **Built** | Picks are ranked by expected value (PoP x gain - (1 - PoP) x loss). A new short option with a credit, risk amount and live delta stores its EV at entry, and the calibration report compares it with realised results. Correlation is the gate rule BR-013. Backtesting and broker integration: **Planned** |
 | **FR-1000–1050** Home hub, metric cards, grouped sidebar | **Built** | Home = 3 metric cards + 2x2 grid; sidebar HOME / PRIMARY / collapsible TOOLS & ANALYTICS (collapsed by default, red badge for unacknowledged critical alerts) |
 | **FR-1100–1160** Strategy Design Matrix | **Built** (grid, filters, gate overlay); strategy detail page **Planned** | Six strategies x three regimes with availability, layers, bands and gate status; each cell links to the Screener, not a dedicated strategy page (FR-1140 / BR-093) |
 | **FR-1200–1240** Dedicated section pages on real data | **Built** | Exit Alerts, Weekly Picks, Active Holdings, Active Trades and Strategy Matrix. Weekly Picks stay empty until the scheduler has written `weekly_picks` rows |
@@ -42,7 +42,7 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 
 | Rule | Status |
 |---|---|
-| **BR-010–021** DNT rules | **Built**, except BR-013 (correlation), which is reported as "not evaluated" (**Planned**). BR-011 counts open positions with an assignment alarm; if positions cannot be priced the gate blocks (fail-safe). BR-081 (total risk) is also checked |
+| **BR-010–021** DNT rules | **Built**. BR-013 blocks a candidate whose daily returns are correlated above your limit (default 0.85) with an open position; the master gate alone lists it as "not evaluated" because it needs a candidate. BR-011 counts open positions with an assignment alarm; if positions cannot be priced the gate blocks (fail-safe). BR-081 (total risk) is also checked |
 | **BR-100–104** Regime score and states (formerly BR-020–024) | **Built** |
 | **BR-025, 030–037** Allocation, caps, layer split | **Built** (layer split shown; Growth lock; band caps; risk per trade). BR-031 continuous account stop-loss monitoring is covered by the equity guardrail and the Heat Dashboard; there is no background monitor |
 | **BR-040–044** Entry and strategy rules | Partial: hard guardrails (BR-044) and Base-layer thresholds (BR-042) are in the gate; strategy selection comes from alpha's screen |
@@ -51,7 +51,7 @@ Last updated: 2026-11-14, after **Phase 4 (analytics)**.
 | **BR-061** Log blocked signals | **Built** |
 | **BR-062** Log trade add/close with time and context | **Built** |
 | **BR-063** Immutable log of regime and gate changes | Regime changes **Built**; changes to the rule thresholds themselves are constants in code, so they are tracked by git |
-| **BR-064** Audit export | Partial (trades CSV); audit CSV export Planned |
+| **BR-064** Audit export | **Built**: trades CSV and audit-trail CSV (`GET /logs/audit.csv`, button on the Signal Log page) |
 | **BR-070** Operational alerts | Partial (pipeline failures); API-latency alert Planned |
 | **BR-071** Free-tier quota alerts | Planned (`cost_monitor` script) |
 | **BR-080–082** Portfolio dashboard, block on risk limits | **Built**: Net Delta, Margin %, Sector Exposure, Total Risk and regime on the Heat Dashboard; total risk over the limit blocks entries (BR-081) |
@@ -73,7 +73,7 @@ PRO plan, pricing, billing, multi-user / RIA features, admin console, mobile app
 
 ## Planned, not scheduled
 
-Backtesting, broker API and streaming/WebSocket data, smart rolling engine, paid news feed (NewsFlag is manual), push notifications, API-latency and quota alerts, audit CSV export.
+Backtesting, broker API and streaming/WebSocket data, smart rolling engine, paid news feed (NewsFlag is manual), push notifications, API-latency and quota alerts.
 
 ## Phase 2 assumptions (defaults you can change)
 

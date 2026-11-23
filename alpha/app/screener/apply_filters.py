@@ -20,8 +20,13 @@ def apply_daily_filters(df: pd.DataFrame) -> pd.DataFrame:
 
     today = pd.Timestamp.today()
 
+    # Band rule: E is auto-rejected, D (speculative) is excluded. Frames without a Band column
+    # (scored but not yet banded) are not band-filtered.
+    in_band = df["Band"].isin(["A", "B", "C"]) if "Band" in df.columns else True
+
     filtered = df[
-        (df["Option Volume"] >= 2000)
+        in_band
+        & (df["Option Volume"] >= 2000)
         & (df["Max OI (Near Exp)"] >= 500)
         & (df["Bid-Ask Spread %"] <= 8)
         & (df["Next Earnings Date"] > today + pd.Timedelta(days=14))

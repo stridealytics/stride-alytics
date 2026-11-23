@@ -1,0 +1,65 @@
+name: Weekly Jobs
+
+# Sunday 23:00 UTC: publish the weekly picks, then prune old rows to stay inside the free
+# Supabase 500 MB limit (see scheduler/scripts/prune_data.py for exactly what is deleted).
+on:
+  schedule:
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      prune_dry_run:
+        description: "Only report what the prune step would delete"
+        type: boolean
+        default: false
+
+concurrency:
+  group: weekly
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: scheduler
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: scheduler/uv.lock
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Generate weekly picks
+        run: uv run python scripts/generate_picks.py
+
+      - name: Prune old data
+        if: always()
+        env:
+          PRUNE_DRY_RUN: ${{ github.event.inputs.prune_dry_run == 'true' && '1' || '' }}
+        run: uv run python scripts/prune_data.py
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -sS -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Weekly jobs failed: ${RUN_URL}\"}" "$SLACK_WEBHOOK" || true
+          fi

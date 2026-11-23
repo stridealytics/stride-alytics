@@ -98,4 +98,7 @@ playwright-report/
 !.vscode/launch.json`r`n# Secret scrubbing tools`r`nfilter-replacements.txt`r`nscrub-secrets.py`r`n
 .vercel
 .env*
+# Templates must stay trackable: this re-allows them after the .env* rule above
+!.env.example
+!**/.env.example
 alpha/service_account.json

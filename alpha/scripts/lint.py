@@ -1,7 +1,6 @@
 """Alpha project lint script - runs ruff linter."""
 
 import subprocess
-import sys
 
 
 def main() -> int:

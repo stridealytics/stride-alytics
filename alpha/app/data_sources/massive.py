@@ -1,5 +1,5 @@
 """
-Alpha Option Trading System — Massive API Data Source
+Alpha Stock and Options Screening Pipeline — Massive API Data Source
 
 This module fetches stock/option data from Massive's Stock Market API
 and returns a pandas DataFrame suitable for the Alpha business logic.
@@ -14,7 +14,6 @@ import requests
 import pandas as pd
 
 from app.config import config
-
 
 BASE_URL = "https://api.massive.com"  # Adjust if Massive uses a different base URL
 

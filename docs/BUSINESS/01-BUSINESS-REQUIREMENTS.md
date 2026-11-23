@@ -1,10 +1,12 @@
 # StrideAlytics — Business Requirements
 
+**Product:** StrideAlytics: Stock and Options Trading System. Rules-based analysis and decision support; it does not place orders.
+
 > **SCOPE (2026-11-14):** Personal use only. There is no PRO plan, pricing, billing, multi-user or RIA support. Free tiers are the default, and paid APIs or services may be added later if needed. The **mobile** app is deferred until further confirmation.
 
 ## 1. Document Purpose
 
-This document translates the StrideAlytics Options Selling Platform (OSP) Build Guide into formal business requirements, product vision, user personas, platform phases, and high-level acceptance criteria. It is the authoritative reference for developers, product managers, and stakeholders building the web app, mobile app, backend API, and platform operations.
+This document translates the StrideAlytics Stock and Options Trading System (SOTS) Build Guide (`requirements/Business/stock-and-options-trading-system-build-guide.docx`) into formal business requirements, product vision, user personas, platform phases, and high-level acceptance criteria. It is the authoritative reference for developers, product managers, and stakeholders building the web app, mobile app, backend API, and platform operations.
 
 ## 2. Important Disclaimer
 
@@ -12,7 +14,7 @@ StrideAlytics is an analytics and decision-support tool. It does not constitute 
 
 ## 3. Product Vision
 
-StrideAlytics is an options selling analytics tool for personal use by an individual trader managing $50K–$150K+ in capital. It provides a systematic, rules-driven decision framework that replaces discretionary judgment with quantitative risk gates, regime-aware allocation, and automated trade scoring.
+StrideAlytics is a stock and options trading system (analysis and decision support, with options selling as the primary strategy) for personal use by an individual trader managing $50K–$150K+ in capital. It provides a systematic, rules-driven decision framework that replaces discretionary judgment with quantitative risk gates, regime-aware allocation, and automated trade scoring.
 
 The platform operationalizes the Adaptive Dual-Layer Engine — a Conservative/Base layer and a Growth layer — across all market regimes, enforcing hard capital gates that prevent emotional or impulsive trade decisions.
 
@@ -20,7 +22,7 @@ The user interface follows a **hub-and-spoke architecture**: the Home screen ser
 
 ## 4. Strategic Objectives
 
-- Codify the full OSP rule set into production software: settings, DNT filters, regime scoring, sizing, exit logic.
+- Codify the full SOTS rule set into production software: settings, DNT filters, regime scoring, sizing, exit logic.
 - Provide real-time portfolio Greeks monitoring with hard gate enforcement.
 - Surface regime-aware weekly trade picks ranked by Expected Value (EV).
 - Replace manual spreadsheet workflows with a scalable, API-driven web and mobile platform.

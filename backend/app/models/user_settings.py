@@ -39,6 +39,8 @@ class UserSettings(Base):
         JSONType, default=lambda: dict(DEFAULT_REGIME_WEIGHTS), nullable=False
     )
     widget_toggles: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    # --- Added in migration 011: only the rule thresholds the user changed (see domain/thresholds.py)
+    thresholds: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     disclaimer_accepted_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
     )

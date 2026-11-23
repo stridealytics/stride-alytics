@@ -1,4 +1,4 @@
-# Alpha — Option Trading System
+# Alpha — Stock and Options Screening Pipeline
 
 > **Module:** `alpha/` at the project root  
 > **Package:** `stride-alytics-alpha`  
@@ -23,9 +23,7 @@ alpha/
 │   ├── main.py                     # Pipeline orchestrator (run_system / main)
 │   ├── streamlit_app.py            # Streamlit dashboard
 │   ├── config.py                   # Environment config
-│   ├── secrets_loader.py           # Required-key validator (not called by main)
 │   ├── ingest.py                   # Multi-source ingestion (not wired into main yet)
-│   ├── business_logic.py           # Unused duplicate of the scoring rules (see TODO)
 │   ├── supabase_schema.sql         # Supabase table definitions
 │   ├── utils/
 │   │   ├── load_data.py            # Load Supabase / raw_screener.csv
@@ -38,7 +36,7 @@ alpha/
 │   │   └── weekly_watchlist.py     # Weekly watchlist with strategy tags
 │   ├── database/
 │   │   ├── supabase_client.py      # Supabase client singleton
-│   │   └── insert_daily.py         # replace_day + insert helpers
+│   │   └── insert_daily.py         # sync_day (add/update only) + insert helpers
 │   ├── sheets/push_to_sheets.py    # Push DataFrames to Google Sheets
 │   └── data_sources/               # polygon, yfinance_data, fmp_fundamentals, massive, ticker_universe
 ├── tests/                          # pytest (fake Supabase client, no network)
@@ -76,8 +74,17 @@ alpha/
 3. **Bands** — `compute_bands()` maps scores to letter bands: A (≥8), B (≥6), C (≥4), D (≥2), E (<2).
 4. **Daily Filters** — `apply_daily_filters()` keeps only tickers passing all entry criteria and adds Volatility Bias & IV vs HV columns.
 5. **Weekly Watchlist** — `weekly_watchlist()` filters for score ≥6 and assigns strategy tags based on IV rank and trend.
-6. **Supabase** — `replace_day()` replaces today's rows in `daily_metrics`, `option_scores`, `bands` and `weekly_watchlist`. Payloads are built before anything is deleted; deletes match `date LIKE 'YYYY-MM-DD%'`; errors are raised.
+6. **Supabase** — `sync_day()` writes today's rows to `daily_metrics`, `option_scores`, `bands` and `weekly_watchlist` without wiping anything: it reads the day's existing rows, inserts tickers that have none, and updates only the columns that changed. Re-running with the same data writes nothing; other days are never touched; a ticker missing from today's data keeps its row. Only `weekly_watchlist` rows for tickers that left today's list are removed, one by one (never the whole day). Payloads are built before any write; errors are raised.
+   - **Ticker list:** `ticker_universe` holds one row per ticker. The first run stores the whole list (the one-time bulk load); each later run writes only the difference: new tickers are inserted, dropped ones get `status = 'removed'` (never deleted), returning ones are reactivated. An empty list, or one that would remove more than `UNIVERSE_MAX_REMOVE_PCT` (default 20) percent of the active tickers, counts as a bad fetch and removes nothing. The sector is stored once per ticker.
+   - **Protection:** after the first complete load the run sets `initial_load_complete` in `alpha_state`. From then on `clear_all_tables()` and `delete_rows()` refuse to run (also if the flag cannot be read). Override on purpose with `ALPHA_UNLOCK_DESTRUCTIVE=I-UNDERSTAND`. `reset_and_run.py` goes through the same guard.
 7. **Google Sheets** — only if `GOOGLE_SHEETS_SPREADSHEET_ID` is set: `push_to_sheet()` writes 3 worksheets: "Screener", "Daily Candidates", "Weekly Watchlist".
+
+### Safe first run against a Supabase project
+
+1. `uv run python -m app.inspect_target`: shows the project ref, which tables exist, row counts and whether the data is protected. Read-only.
+2. Set `ALPHA_EXPECT_PROJECT=<ref>` in `alpha/.env` so a run aborts if the URL points somewhere else.
+3. `uv run python app/main.py --dry-run` (needs `INGEST_LIVE=1` for live data): fetches, scores and prints what would be inserted or updated per table and what the universe sync would add or remove. Nothing is written, no sectors are stored, the protection flag is not set and Google Sheets is not pushed.
+4. Run without `--dry-run` once the numbers look right.
 
 ### Failure policy
 
@@ -85,7 +92,11 @@ alpha/
 - **A Supabase write failure fails the run.** `main()` returns exit code 1.
 - **A Google Sheets failure** is reported as an alert but does not fail the run.
 - **Alerts** go to `SLACK_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL` when set (`app/utils/notify.py`); if neither is set the alert is only printed.
-- **Stale CSV:** if the CSV fallback is older than `MAX_CSV_AGE_DAYS` (default 3) a warning and alert are sent, because its values would be stamped with today's date.
+- **Incomplete live fetch:** if more than `INGEST_MAX_FAIL_PCT` (default 20) percent of tickers fail in yfinance, the live fetch is treated as failed: an alert is sent and the run falls back to stored data.
+- **Empty index list:** if the S&P 500 or NASDAQ-100 scrape returns nothing, a warning and alert are sent. The stored universe is also capped at `INGEST_MAX_TICKERS` when ingesting, so a partial scrape cannot grow it past the limit.
+- **Unknown earnings date:** tickers scoring 6+ that are left off the weekly watchlist for this reason are counted in the log.
+- **Delete guard in the database** (`database/migrations/014_alpha_delete_guard.sql`): `ticker_universe` and `alpha_state` accept no DELETE or TRUNCATE; the four daily tables refuse TRUNCATE and any single DELETE that removes 25+ rows and more than half the table. A failed weekly prune or dedupe because of this is intentional; to proceed on purpose, run in the SQL editor `SET LOCAL alpha.allow_bulk_delete = 'on';` inside a transaction.
+- **Stale CSV:** if the CSV fallback is older than `MAX_CSV_AGE_DAYS` (default 3), its values would be stamped with today's date. With `INGEST_LIVE=1` (the daily workflow) the run **fails** instead of storing them. Without it (local CSV workflow) a warning and alert are sent and the run continues.
 
 ---
 
@@ -191,8 +202,12 @@ Run it from `alpha/` so the `app.*` imports resolve. It shows the **latest day o
 | `option_scores`    | Per-ticker per-day scores, trend, strategy      |
 | `bands`            | Per-ticker per-day band (A–E)                   |
 | `weekly_watchlist` | Weekly watchlist with strategy tags             |
-| `trades`           | Trade log (not written by the pipeline yet)     |
-| `audit_log`        | Change tracking (not written yet)               |
+| `alpha_trades`     | Trade log (not written by the pipeline yet)     |
+| `alpha_audit_log`  | Change tracking (not written yet)               |
+| `ticker_universe`  | One row per ticker, loaded once (soft-removed)  |
+| `alpha_state`      | Protection flags (`initial_load_complete`)      |
+
+The `alpha_` prefix keeps alpha's trade and audit tables from clashing with the backend's `trades` (migration 002) in a shared Supabase project.
 
 Every `date` column is TEXT holding `YYYY-MM-DD`. Run `app/supabase_schema.sql` in the Supabase SQL editor to create the tables.
 
@@ -203,7 +218,7 @@ Every `date` column is TEXT holding `YYYY-MM-DD`. Run `app/supabase_schema.sql` 
 A scheduled workflow runs Mon–Fri at 12:30 UTC (≈ 8:30 AM ET):
 
 ```yaml
-# .github/workflows/daily_run.yml
+# .github/workflows/alpha-daily-run.yml
 on:
   schedule:
     - cron: "30 12 * * 1-5"   # UTC: 8:30 AM EDT / 7:30 AM EST
@@ -214,7 +229,9 @@ It runs `uv run python app/main.py` (not plain `python`, which would not see the
 Required GitHub secrets: `SUPABASE_URL`, `SUPABASE_KEY`.
 Optional: `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`, `SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`.
 
-Note: the workflow does not run ingestion, so today's data must already be in Supabase or in `raw_screener.csv`.
+The workflow sets `INGEST_LIVE=1`, so each run fetches fresh metrics from yfinance (falling back to Supabase, then `raw_screener.csv`, if the live fetch fails).
+
+Known limitation (accepted): the run is before the US market opens, so it uses the previous session's close. Option volume, bid/ask spread and implied volatility from yfinance are often stale or zero at that time, so those fields are the least reliable. The rows are stamped with the run date. Moving the run after the close (e.g. 21:30 UTC) would improve them.
 
 ---
 
@@ -224,8 +241,9 @@ Note: the workflow does not run ingestion, so today's data must already be in Su
 |----------------|----------|------------------------------------|
 | `SUPABASE_URL` | Yes      | Supabase project URL               |
 | `SUPABASE_KEY` | Yes      | Supabase service role key          |
-| `POLYGON_API_KEY` | Ingestion only | Polygon.io API key         |
-| `FMP_API_KEY`  | Ingestion only | Financial Modeling Prep API key |
+| `POLYGON_API_KEY` | No | Not used by the default free yfinance ingest (`INGEST_LIVE=1`) |
+| `FMP_API_KEY`  | No | Optional: only the FMP "most active" ticker list uses it |
+| `DASHBOARD_PASSWORD` | Streamlit only | Gates the Streamlit dashboard (env var or Streamlit secret); unset = open |
 | `MASSIVE_API_KEY` | No    | Optional extra data source         |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Service-account JSON (or place `service_account.json` in `alpha/`) |
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | No | Target spreadsheet; Sheets push is skipped if unset |

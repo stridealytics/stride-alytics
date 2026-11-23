@@ -6,9 +6,11 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci-cd.yml'
-  pull_request:
-    branches: [main, develop]
-    paths: ['frontend/**']
+  # Pull requests are covered by ci.yml; this workflow only gates deploys on pushes.
+
+concurrency:
+  group: frontend-deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-test:

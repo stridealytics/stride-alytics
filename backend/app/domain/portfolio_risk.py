@@ -13,9 +13,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-MAX_CAPITAL_AT_RISK_PCT = 50.0  # of equity; new entries beyond this are blocked (BR-081)
-MAX_SECTOR_RISK_PCT = 25.0  # capital at risk in one sector, as % of equity
-MAX_NET_DELTA_PCT = 100.0  # |net delta in dollars| as % of equity
+from app.domain.thresholds import DEFAULTS, Thresholds
+
+# Default limits (a user can change them in Settings; see ``thresholds.py``).
+MAX_CAPITAL_AT_RISK_PCT = DEFAULTS.max_capital_at_risk_pct
+MAX_SECTOR_RISK_PCT = DEFAULTS.max_sector_risk_pct
+MAX_NET_DELTA_PCT = DEFAULTS.max_net_delta_pct
 UNKNOWN_SECTOR = "Unknown"
 
 
@@ -56,7 +59,9 @@ def _pct(part: float, whole: float) -> float | None:
     return round(part / whole * 100, 1) if whole > 0 else None
 
 
-def calculate_portfolio_risk(positions: list[PositionRisk], equity: float) -> PortfolioRisk:
+def calculate_portfolio_risk(
+    positions: list[PositionRisk], equity: float, limits: Thresholds = DEFAULTS
+) -> PortfolioRisk:
     at_risk = round(sum(max(p.risk_amount, 0.0) for p in positions), 2)
 
     priced = [p for p in positions if p.position_delta is not None and p.spot is not None]
@@ -84,31 +89,31 @@ def calculate_portfolio_risk(positions: list[PositionRisk], equity: float) -> Po
     raw_net = abs(net_dollars) / equity * 100 if equity > 0 else None
 
     breaches: list[Breach] = []
-    if raw_margin is not None and raw_margin > MAX_CAPITAL_AT_RISK_PCT:
+    if raw_margin is not None and raw_margin > limits.max_capital_at_risk_pct:
         breaches.append(
             Breach(
                 "BR-081",
                 "total_risk",
-                f"Capital at risk is {margin_pct}% of equity (limit {MAX_CAPITAL_AT_RISK_PCT:g}%).",
+                f"Capital at risk is {margin_pct}% of equity (limit {limits.max_capital_at_risk_pct:g}%).",
             )
         )
     for s in sectors:
         pct = s["pct_of_equity"]
         raw = s["capital_at_risk"] / equity * 100 if equity > 0 else None
-        if s["sector"] != UNKNOWN_SECTOR and raw is not None and raw > MAX_SECTOR_RISK_PCT:
+        if s["sector"] != UNKNOWN_SECTOR and raw is not None and raw > limits.max_sector_risk_pct:
             breaches.append(
                 Breach(
                     "BR-080",
                     "sector",
-                    f"{s['sector']} holds {pct}% of equity at risk (limit {MAX_SECTOR_RISK_PCT:g}%).",
+                    f"{s['sector']} holds {pct}% of equity at risk (limit {limits.max_sector_risk_pct:g}%).",
                 )
             )
-    if raw_net is not None and raw_net > MAX_NET_DELTA_PCT:
+    if raw_net is not None and raw_net > limits.max_net_delta_pct:
         breaches.append(
             Breach(
                 "BR-080",
                 "net_delta",
-                f"Net delta exposure is {net_pct}% of equity (limit {MAX_NET_DELTA_PCT:g}%).",
+                f"Net delta exposure is {net_pct}% of equity (limit {limits.max_net_delta_pct:g}%).",
             )
         )
 
@@ -123,14 +128,16 @@ def calculate_portfolio_risk(positions: list[PositionRisk], equity: float) -> Po
         sectors=sectors,
         breaches=breaches,
         limits={
-            "capital_at_risk_pct": MAX_CAPITAL_AT_RISK_PCT,
-            "sector_risk_pct": MAX_SECTOR_RISK_PCT,
-            "net_delta_pct": MAX_NET_DELTA_PCT,
+            "capital_at_risk_pct": limits.max_capital_at_risk_pct,
+            "sector_risk_pct": limits.max_sector_risk_pct,
+            "net_delta_pct": limits.max_net_delta_pct,
         },
     )
 
 
-def entry_risk_reason(equity: float, committed: float, new_risk: float | None) -> str | None:
+def entry_risk_reason(
+    equity: float, committed: float, new_risk: float | None, limits: Thresholds = DEFAULTS
+) -> str | None:
     """BR-081: reason to block new entries because total risk is over the limit, else None.
 
     With ``new_risk`` it projects the total after that trade; without it, it checks the current
@@ -139,11 +146,11 @@ def entry_risk_reason(equity: float, committed: float, new_risk: float | None) -
     if equity <= 0:
         return None  # the equity guardrail handles this case
     pct = (committed + max(new_risk or 0.0, 0.0)) / equity * 100
-    if pct <= MAX_CAPITAL_AT_RISK_PCT:
+    if pct <= limits.max_capital_at_risk_pct:
         return None
     when = "would be" if new_risk else "is"
     tail = " after this trade" if new_risk else ""
     return (
         f"Total capital at risk {when} {pct:.1f}% of equity{tail} "
-        f"(limit {MAX_CAPITAL_AT_RISK_PCT:g}%)."
+        f"(limit {limits.max_capital_at_risk_pct:g}%)."
     )

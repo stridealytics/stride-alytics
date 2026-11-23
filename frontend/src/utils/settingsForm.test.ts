@@ -17,6 +17,21 @@ const settings: UserSettings = {
   regime_weights: { trend: 40, vix: 30, iv_rank: 30 },
   widget_toggles: {},
   enforce_gate: true,
+  thresholds: {},
+  effective_thresholds: {
+    spread_max_pct: 10,
+    open_interest_min: 500,
+    market_cap_min: 2_000_000_000,
+    earnings_window_days: 14,
+    correlation_max: 0.85,
+    allow_band_d: 0,
+    max_capital_at_risk_pct: 50,
+    max_sector_risk_pct: 25,
+    max_net_delta_pct: 100,
+    dte_watch: 7,
+    dte_warning: 3,
+    delta_assignment: 0.7,
+  },
   disclaimer_accepted_at: null,
 };
 

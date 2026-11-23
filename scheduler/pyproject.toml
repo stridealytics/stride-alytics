@@ -14,7 +14,14 @@ dependencies = [
     
     # --- Market Data Feed ---
     "yfinance>=0.2.43",
+
+    # --- Reused backend modules (app.services.*) log through structlog ---
+    "structlog>=24.4.0",
+    "email-validator>=2.2.0",
 ]
+
+[dependency-groups]
+dev = ["pytest>=8.3.3"]
 
 [build-system]
 requires = ["hatchling"]

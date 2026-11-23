@@ -38,6 +38,7 @@ import type {
   ScreenerFilters,
   ScreenerResponse,
   SettingsUpdate,
+  ThresholdInfo,
   SignalLogEntry,
   SignupRequest,
   TokenResponse,
@@ -131,6 +132,8 @@ export const settingsApi = {
   get: () => client.get<Envelope<UserSettings>>("/settings").then((r) => r.data.data),
   update: (body: SettingsUpdate) =>
     client.put<Envelope<UserSettings>>("/settings", body).then((r) => r.data.data),
+  thresholdInfo: () =>
+    client.get<Envelope<ThresholdInfo>>("/settings/thresholds").then((r) => r.data.data),
   acceptDisclaimer: () =>
     client.post<Envelope<UserSettings>>("/settings/disclaimer").then((r) => r.data.data),
 };

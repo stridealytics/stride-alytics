@@ -66,7 +66,12 @@ async def portfolio_risk(
     """Net delta, margin %, sector exposure and limit breaches across open trades (FR-540)."""
     account = await load_account(ctx)
     data = await build_portfolio_risk(
-        ctx, positions, sectors, equity=account.equity, regime_score=account.regime.score
+        ctx,
+        positions,
+        sectors,
+        equity=account.equity,
+        regime_score=account.regime.score,
+        limits=account.limits,
     )
     data["regime_state"] = account.regime.state
     return {"success": True, "data": data}

@@ -1,5 +1,5 @@
 """
-Alpha Option Trading System — Supabase Client
+Alpha Stock and Options Screening Pipeline — Supabase Client
 
 This module initializes a Supabase client using:
 - SUPABASE_URL
@@ -15,7 +15,6 @@ should import this function to interact with Supabase.
 from supabase import create_client, Client
 from app.config import config
 
-
 # ─────────────────────────────────────────────
 # Validate Environment Variables
 # ─────────────────────────────────────────────
@@ -23,11 +22,14 @@ from app.config import config
 
 def _validate_supabase_env():
     if not config.SUPABASE_URL:
-        raise ValueError("[ERROR] SUPABASE_URL is missing. Add it to your .env file.")
+        raise ValueError(
+            "[ERROR] SUPABASE_URL is missing. Add it to your environment or Streamlit secrets."
+        )
 
     if not config.SUPABASE_KEY:
         raise ValueError(
-            "[ERROR] SUPABASE_KEY (service_role) is missing. Add it to your .env file."
+            "[ERROR] SUPABASE_KEY (service_role) is missing. "
+            "Add it to your environment or Streamlit secrets."
         )
 
 
@@ -68,8 +70,11 @@ def insert_rows(table: str, rows: list[dict]):
 
 
 def delete_rows(table: str, column: str, value):
-    """Delete rows where column == value."""
+    """Delete rows where column == value. Blocked once the data is protected (see safety.py)."""
+    from app.database.safety import require_unlocked
+
     client = get_supabase_client()
+    require_unlocked(f"delete_rows({table})", client)
     return client.table(table).delete().eq(column, value).execute()
 
 
@@ -96,8 +101,8 @@ if __name__ == "__main__":
 
     print("\n[INFO] Testing Supabase connection...")
     try:
-        resp = client.table("audit_log").select("*").limit(5).execute()
-        print("[OK] Connection OK — audit_log sample:")
+        resp = client.table("alpha_audit_log").select("*").limit(5).execute()
+        print("[OK] Connection OK — alpha_audit_log sample:")
         print(resp.data)
     except Exception as e:
         print("[ERROR] Supabase error:", e)

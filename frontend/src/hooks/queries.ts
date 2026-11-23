@@ -42,6 +42,7 @@ import type {
   RegimeScoreData,
   ScreenerFilters,
   SettingsUpdate,
+  ThresholdInfo,
   SizingRequest,
   SizingResult,
   SymbolFlag,
@@ -220,11 +221,18 @@ export const useUpdateSettings = () => {
     mutationFn: (body) => settingsApi.update(body),
     onSuccess: (data) => {
       qc.setQueryData(["settings"], data);
+      qc.invalidateQueries({ queryKey: ["settings", "thresholds"] });
       qc.invalidateQueries({ queryKey: ["logs"] });
     },
     onError: withApiErrorLogging("settings.update", "Could not save settings"),
   });
 };
+
+export const useThresholdInfo = () =>
+  useQuery<ThresholdInfo>({
+    queryKey: ["settings", "thresholds"],
+    queryFn: () => settingsApi.thresholdInfo(),
+  });
 
 // --- Logs ---
 

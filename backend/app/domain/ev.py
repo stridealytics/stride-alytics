@@ -29,6 +29,28 @@ def expected_value(pop: float | None, gain: float | None, loss: float | None) ->
     return round(pop * gain - (1.0 - pop) * loss, 2)
 
 
+def entry_ev(
+    *,
+    trade_type: str,
+    direction: str,
+    quantity: int,
+    credit: float | None,
+    risk_amount: float | None,
+    delta: float | None,
+) -> float | None:
+    """EV in dollars of a new short option, recorded on the trade at entry.
+
+    Gain = the credit kept (per share x 100 x quantity); loss = the capital at risk the user
+    entered; PoP from the contract's delta. Anything else (stock, long options, a missing credit,
+    risk or delta) is not scored, so the calibration report never mixes in a guess.
+    """
+    if trade_type not in ("call", "put") or direction != "short" or not credit or not risk_amount:
+        return None
+    return expected_value(
+        pop_from_delta(delta), credit * CONTRACT_MULTIPLIER * quantity, risk_amount
+    )
+
+
 def pick_ev(pick: dict[str, Any]) -> float | None:
     """EV per contract of a weekly pick, using its confidence as PoP.
 

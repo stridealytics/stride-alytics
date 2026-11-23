@@ -12,11 +12,9 @@ services:
     buildCommand: "uv sync --frozen --no-dev --active"
     startCommand: "uv run --active uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     numInstances: 1
-    plan: starter
+    plan: free # sleeps when idle; use `starter` for always-on
     healthCheckPath: /health
     envVars:
-      - key: APP_ENV
-        value: production
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
@@ -35,7 +33,7 @@ services:
         value: "production"
       - key: SUPABASE_JWT_SECRET
         sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
+      - key: ALLOW_SIGNUP
+        value: "false"
       - key: SLACK_WEBHOOK
         sync: false

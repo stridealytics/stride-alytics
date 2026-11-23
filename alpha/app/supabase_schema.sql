@@ -35,6 +35,11 @@ create table if not exists daily_metrics (
     inserted_at timestamp default now()
 );
 
+-- Columns the pipeline writes but the first version of this table lacked.
+alter table daily_metrics add column if not exists market_cap numeric;
+alter table daily_metrics add column if not exists beta numeric;
+alter table daily_metrics add column if not exists float_shares numeric;
+
 create index if not exists idx_daily_metrics_ticker on daily_metrics(ticker);
 create index if not exists idx_daily_metrics_date on daily_metrics(date);
 
@@ -94,9 +99,9 @@ create index if not exists idx_weekly_watchlist_date on weekly_watchlist(date);
 
 
 -- ─────────────────────────────────────────────
--- 5. trades — Trade log
+-- 5. alpha_trades — Trade log (named alpha_* so it cannot clash with the backend's trades table)
 -- ─────────────────────────────────────────────
-create table if not exists trades (
+create table if not exists alpha_trades (
     id bigint generated always as identity primary key,
     date text not null,
     ticker text not null,
@@ -109,17 +114,74 @@ create table if not exists trades (
     inserted_at timestamp default now()
 );
 
-create index if not exists idx_trades_ticker on trades(ticker);
-create index if not exists idx_trades_date on trades(date);
+create index if not exists idx_alpha_trades_ticker on alpha_trades(ticker);
+create index if not exists idx_alpha_trades_date on alpha_trades(date);
 
 
 -- ─────────────────────────────────────────────
--- 6. audit_log — System events
+-- 6. alpha_audit_log — System events (named alpha_* to avoid the backend's tables)
 -- ─────────────────────────────────────────────
-create table if not exists audit_log (
+create table if not exists alpha_audit_log (
     id bigint generated always as identity primary key,
     timestamp text not null,
     event text not null
 );
 
-create index if not exists idx_audit_log_timestamp on audit_log(timestamp);
+create index if not exists idx_alpha_audit_log_timestamp on alpha_audit_log(timestamp);
+
+
+-- ─────────────────────────────────────────────
+-- 7. ticker_universe — one row per ticker, loaded once
+--    The daily run adds new tickers and marks dropped ones status='removed'.
+--    Rows are never deleted or overwritten.
+-- ─────────────────────────────────────────────
+create table if not exists ticker_universe (
+    ticker text primary key,
+    sector text,
+    source text,
+    status text not null default 'active' check (status in ('active', 'removed')),
+    added_at timestamptz not null default now(),
+    removed_at timestamptz
+);
+
+create index if not exists idx_ticker_universe_status on ticker_universe(status);
+
+
+-- ─────────────────────────────────────────────
+-- 8. alpha_state — protection flags
+--    After the first complete load, alpha sets initial_load_complete=true and
+--    refuses bulk deletes (see app/database/safety.py).
+-- ─────────────────────────────────────────────
+create table if not exists alpha_state (
+    key text primary key,
+    value text not null,
+    updated_at timestamptz not null default now()
+);
+
+
+-- ─────────────────────────────────────────────
+-- 9. One row per (date, ticker): stops duplicates at the database level. On a fresh database
+--    this is safe to create right away. On an existing one with duplicates, run
+--    alpha/scripts/dedupe_duplicates.sql first (it also creates these indexes).
+-- ─────────────────────────────────────────────
+create unique index if not exists uq_daily_metrics_date_ticker on daily_metrics(date, ticker);
+create unique index if not exists uq_option_scores_date_ticker on option_scores(date, ticker);
+create unique index if not exists uq_bands_date_ticker on bands(date, ticker);
+create unique index if not exists uq_weekly_watchlist_date_ticker on weekly_watchlist(date, ticker);
+
+
+-- ─────────────────────────────────────────────
+-- 10. Row-level security (REQUIRED)
+--     These tables are in `public`, so Supabase exposes them to the public anon key.
+--     RLS with no policies denies anon/authenticated access; alpha, the scheduler and the
+--     Streamlit app use the service_role key, which bypasses RLS. Also applied by
+--     database/migrations/013_alpha_rls_and_numeric_widen.sql.
+-- ─────────────────────────────────────────────
+alter table daily_metrics    enable row level security;
+alter table option_scores    enable row level security;
+alter table bands            enable row level security;
+alter table weekly_watchlist enable row level security;
+alter table alpha_trades     enable row level security;
+alter table alpha_audit_log  enable row level security;
+alter table ticker_universe  enable row level security;
+alter table alpha_state      enable row level security;

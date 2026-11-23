@@ -32,7 +32,7 @@ async def summary(
       so this is also the cash available. **Utilisation** = capital at risk / equity.
     """
     account = await load_account(ctx)
-    alerts = await evaluate_open_positions(ctx, provider, account.regime.score)
+    alerts = await evaluate_open_positions(ctx, provider, account.regime.score, account.limits)
     dicts, unacknowledged = await annotate_acks(ctx, alerts)
 
     settings = account.settings

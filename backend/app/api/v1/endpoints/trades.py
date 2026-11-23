@@ -7,13 +7,16 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import Ctx, get_ctx, to_csv
+from app.domain.ev import entry_ev
 from app.api.v1.endpoints.gate import is_backdated
 from app.api.v1.schemas.portfolio import TradeClose, TradeCreate, TradeNotes, TradeOut, TradePage
-from app.repositories.sql import InvalidInput
+from app.repositories.sql import InvalidInputError
 from app.services.portfolio import Trade, trade_breakdown
 from app.services.position_data import PositionDataProvider, get_position_data_provider
+from app.services.returns_data import ReturnsProvider, get_returns_provider
 from app.services.symbol_data import SymbolDataProvider, get_symbol_data_provider
 from app.services.trading import entry_gate, load_account, log_gate_decision
 from app.utils.logger import get_logger
@@ -41,6 +44,7 @@ TRADE_CSV_COLUMNS = [
     "band",
     "risk_amount",
     "credit",
+    "entry_ev",
     "notes",
 ]
 
@@ -68,7 +72,7 @@ async def list_all_trades(
             limit=limit,
             offset=offset,
         )
-    except InvalidInput as exc:
+    except InvalidInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return TradePage(
         data=[TradeOut(**row) for row in trade_breakdown(trades)],
@@ -106,12 +110,46 @@ async def list_trades(portfolio_id: UUID, ctx: Ctx = Depends(get_ctx)) -> list[T
     return [TradeOut(**row) for row in trade_breakdown(trades)]
 
 
+async def _entry_ev(
+    payload: TradeCreate, symbol: str, positions: PositionDataProvider
+) -> float | None:
+    """EV to store on a new short option. Back-dated entries are not scored: today's delta says
+    nothing about the day the trade was opened."""
+    scorable = (
+        payload.trade_type in ("call", "put")
+        and payload.direction == "short"
+        and payload.credit
+        and payload.risk_amount
+        and payload.strike
+        and payload.expiry
+        and not is_backdated(payload.entry_date)
+    )
+    if not scorable:
+        return None
+    market = await run_in_threadpool(
+        positions,
+        symbol,
+        trade_type=payload.trade_type,
+        strike=payload.strike,
+        expiry=payload.expiry,
+    )
+    return entry_ev(
+        trade_type=payload.trade_type,
+        direction=payload.direction,
+        quantity=payload.quantity,
+        credit=payload.credit,
+        risk_amount=payload.risk_amount,
+        delta=market.delta if market.available else None,
+    )
+
+
 @router.post("", response_model=TradeOut, status_code=status.HTTP_201_CREATED)
 async def add_trade(
     payload: TradeCreate,
     ctx: Ctx = Depends(get_ctx),
     provider: SymbolDataProvider = Depends(get_symbol_data_provider),
     positions: PositionDataProvider = Depends(get_position_data_provider),
+    returns: ReturnsProvider = Depends(get_returns_provider),
 ) -> TradeOut:
     """Append a new trade to one of the user's portfolios.
 
@@ -142,6 +180,8 @@ async def add_trade(
                 layer=payload.layer,
                 strike=payload.strike,
                 expiry=payload.expiry,
+                returns=returns,
+                band=payload.band,
             )
             await log_gate_decision(
                 ctx,
@@ -163,6 +203,7 @@ async def add_trade(
                     },
                 )
 
+    ev = await _entry_ev(payload, symbol, positions)
     trade = Trade(
         id=uuid4(),
         user_id=ctx.user_id,
@@ -183,6 +224,7 @@ async def add_trade(
         band=payload.band,
         risk_amount=payload.risk_amount,
         credit=payload.credit,
+        entry_ev=ev,
     )
     try:
         stored = await ctx.repo.add_trade(trade)
@@ -213,7 +255,7 @@ async def close_trade(trade_id: UUID, payload: TradeClose, ctx: Ctx = Depends(ge
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Trade not found") from exc
-    except InvalidInput as exc:
+    except InvalidInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ValueError as exc:  # already closed
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

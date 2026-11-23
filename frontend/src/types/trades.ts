@@ -26,6 +26,7 @@ export interface TradeOut {
   band?: Band | null;
   risk_amount?: number | null;
   credit?: number | null;
+  entry_ev?: number | null;
 }
 
 export interface TradeCreate {

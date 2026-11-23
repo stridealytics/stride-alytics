@@ -1,31 +1,35 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as HotToaster } from "react-hot-toast";
 
 import { AppLayout } from "./components/layout";
 import { useAuthStore } from "./store";
-import {
-  ActiveHoldingsPage,
-  ActiveTradesPage,
-  DashboardPage,
-  ExitAlertsPage,
-  GreeksPage,
-  HeatDashboardPage,
-  LoginPage,
-  OptionChainPage,
-  PicksPage,
-  PortfolioPage,
-  RegimePage,
-  ScenariosPage,
-  ScreenerPage,
-  SettingsPage,
-  SignalLogPage,
-  SignupPage,
-  SizingPage,
-  StrategyMatrixPage,
-  WatchlistPage,
-} from "./pages";
+import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
+
+// Every other page is loaded on demand so the first paint ships only the login + layout code
+// (Recharts and the heavy pages download when first visited).
+const page = (load: () => Promise<Record<string, unknown>>, name: string) =>
+  lazy(async () => ({ default: (await load())[name] as React.ComponentType }));
+
+const ActiveHoldingsPage = page(() => import("./pages/ActiveHoldingsPage"), "ActiveHoldingsPage");
+const ActiveTradesPage = page(() => import("./pages/ActiveTradesPage"), "ActiveTradesPage");
+const DashboardPage = page(() => import("./pages/DashboardPage"), "DashboardPage");
+const ExitAlertsPage = page(() => import("./pages/ExitAlertsPage"), "ExitAlertsPage");
+const GreeksPage = page(() => import("./pages/GreeksPage"), "GreeksPage");
+const HeatDashboardPage = page(() => import("./pages/HeatDashboardPage"), "HeatDashboardPage");
+const OptionChainPage = page(() => import("./pages/OptionChainPage"), "OptionChainPage");
+const PicksPage = page(() => import("./pages/PicksPage"), "PicksPage");
+const PortfolioPage = page(() => import("./pages/PortfolioPage"), "PortfolioPage");
+const RegimePage = page(() => import("./pages/RegimePage"), "RegimePage");
+const ScenariosPage = page(() => import("./pages/ScenariosPage"), "ScenariosPage");
+const ScreenerPage = page(() => import("./pages/ScreenerPage"), "ScreenerPage");
+const SettingsPage = page(() => import("./pages/SettingsPage"), "SettingsPage");
+const SignalLogPage = page(() => import("./pages/SignalLogPage"), "SignalLogPage");
+const SizingPage = page(() => import("./pages/SizingPage"), "SizingPage");
+const StrategyMatrixPage = page(() => import("./pages/StrategyMatrixPage"), "StrategyMatrixPage");
+const WatchlistPage = page(() => import("./pages/WatchlistPage"), "WatchlistPage");
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +63,7 @@ export default function App() {
       <BrowserRouter>
         <AuthBootstrap>
           <HotToaster position="top-right" />
+          <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading…</div>}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
@@ -91,6 +96,7 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </AuthBootstrap>
       </BrowserRouter>
     </QueryClientProvider>

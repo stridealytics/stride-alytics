@@ -1,15 +1,14 @@
 """
-Dynamic Ticker Universe Loader for Alpha Option Trading System.
+Dynamic Ticker Universe Loader for the Alpha Stock and Options Screening Pipeline.
 
 Supports multiple sources:
-- S&P 500 constituents (Wikipedia scraping)
-- NASDAQ 100 constituents (Wikipedia scraping)
+- S&P 500 constituents (public index constituent lists, scraped)
+- NASDAQ 100 constituents (public index constituent lists, scraped)
 - Most active tickers (FMP API)
 - Custom watchlist (local CSV / Supabase)
 """
-import io
+
 import os
-import time
 
 import pandas as pd
 import requests
@@ -17,20 +16,43 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from app.config import config
-from app.database.supabase_client import get_supabase_client
 
 load_dotenv()
 
 
+HEADERS = {"User-Agent": "StrideAlytics-alpha/1.0 (personal screener; ticker list refresh)"}
+
+
+def table_column(html: str, header: str, table_id: str = "constituents") -> list[str]:
+    """Text of the ``header`` column of the table with ``table_id`` (empty list if not found).
+
+    Parsed with BeautifulSoup alone, so no lxml/html5lib dependency is needed.
+    """
+    table = BeautifulSoup(html, "html.parser").find("table", {"id": table_id})
+    if table is None:
+        return []
+    rows = table.find_all("tr")
+    if not rows:
+        return []
+    names = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
+    if header not in names:
+        return []
+    idx = names.index(header)
+    values = []
+    for row in rows[1:]:
+        cells = row.find_all(["td", "th"])
+        if len(cells) > idx and cells[idx].get_text(strip=True):
+            values.append(cells[idx].get_text(strip=True))
+    return values
+
+
 def get_sp500_tickers() -> list[str]:
-    """Fetch S&P 500 constituents from Wikipedia."""
+    """Fetch S&P 500 constituents from a public index constituent list (scraped)."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     try:
-        resp = requests.get(url, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        table = soup.find("table", {"id": "constituents"})
-        df = pd.read_html(str(table))[0]
-        tickers = df["Symbol"].tolist()
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        tickers = table_column(resp.text, "Symbol")
         return [str(t).replace(".", "-") for t in tickers]
     except Exception as e:
         print(f"⚠️ Failed to fetch S&P 500 tickers: {e}")
@@ -38,14 +60,12 @@ def get_sp500_tickers() -> list[str]:
 
 
 def get_nasdaq100_tickers() -> list[str]:
-    """Fetch NASDAQ 100 constituents from Wikipedia."""
-    url = "https://en.wikipedia.org/wiki/NASDAQ-100"
+    """Fetch NASDAQ 100 constituents from a public index constituent list (scraped)."""
+    url = "https://en.wikipedia.org/wiki/List_of_NASDAQ-100_companies"
     try:
-        resp = requests.get(url, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        table = soup.find("table", {"id": "constituents"})
-        df = pd.read_html(str(table))[0]
-        tickers = df["Ticker"].tolist()
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        tickers = table_column(resp.text, "Ticker")
         return [str(t).replace(".", "-") for t in tickers]
     except Exception as e:
         print(f"⚠️ Failed to fetch NASDAQ 100 tickers: {e}")
@@ -87,16 +107,7 @@ def get_custom_universe() -> list[str]:
     return sorted(list(tickers))
 
 
-# Persistent master list stored in Supabase (optional)
-def save_universe_to_supabase(tickers: list[str]) -> None:
-    """Persist ticker universe to Supabase for tracking."""
-    try:
-        supabase = get_supabase_client()
-        now = pd.Timestamp.now().isoformat()
-        rows = [{"ticker": t, "added_at": now, "source": "universe_scanner"} for t in tickers]
-        supabase.table("ticker_universe").upsert(rows, on_conflict=["ticker"]).execute()
-    except Exception as e:
-        print(f"⚠️ Failed to save universe to Supabase: {e}")
+# The persistent master list lives in app/database/universe.py (sync_universe).
 
 
 def load_tickers(
@@ -141,6 +152,12 @@ def load_tickers(
     seen = set()
     tickers = []
     for source_name, source_tickers in sources:
+        if not source_tickers and source_name in ("SP500", "NASDAQ100"):
+            # A scraped index list came back empty: the page changed or the site blocked us.
+            from app.utils.notify import send_alert
+
+            print(f"[WARNING] {source_name} ticker list is empty (fetch failed?)")
+            send_alert(f"Alpha: the {source_name} ticker list came back empty.")
         added = 0
         for t in source_tickers:
             if t not in seen:

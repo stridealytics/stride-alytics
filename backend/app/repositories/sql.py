@@ -23,10 +23,11 @@ from sqlalchemy.orm import selectinload
 
 from app import models as m
 from app.domain.regime_score import RegimeScore
+from app.domain.thresholds import resolve as resolve_thresholds
 from app.services.portfolio import Portfolio, Trade, calculate_pnl
 
 
-class InvalidInput(ValueError):
+class InvalidInputError(ValueError):
     """The request is well-formed but not acceptable (endpoints map it to 422)."""
 
 
@@ -45,6 +46,7 @@ SETTINGS_FIELDS = (
     "regime_weights",
     "widget_toggles",
     "enforce_gate",
+    "thresholds",
 )
 
 
@@ -95,6 +97,7 @@ def _to_trade(row: m.Trade) -> Trade:
         band=row.band,
         risk_amount=_num(row.risk_amount),
         credit=_num(row.credit),
+        entry_ev=_num(row.entry_ev),
     )
 
 
@@ -126,6 +129,7 @@ def trade_snapshot(t: Trade) -> dict[str, Any]:
         "band": t.band,
         "risk_amount": t.risk_amount,
         "credit": t.credit,
+        "entry_ev": t.entry_ev,
         "notes": t.notes,
     }
 
@@ -261,6 +265,7 @@ class Repo:
             band=trade.band,
             risk_amount=trade.risk_amount,
             credit=trade.credit,
+            entry_ev=trade.entry_ev,
         )
         self.s.add(row)
         await self.s.flush()
@@ -303,7 +308,9 @@ class Repo:
 
         field_name = sort.lstrip("-+")
         if field_name not in _TRADE_SORTS:
-            raise InvalidInput(f"cannot sort by {field_name!r}; allowed: {sorted(_TRADE_SORTS)}")
+            raise InvalidInputError(
+                f"cannot sort by {field_name!r}; allowed: {sorted(_TRADE_SORTS)}"
+            )
         column = getattr(m.Trade, field_name)
         order = column.desc() if sort.startswith("-") else column.asc()
 
@@ -323,7 +330,7 @@ class Repo:
             raise ValueError("trade is already closed")
         entry = _as_date(row.entry_date)
         if entry is not None and exit_date < entry:
-            raise InvalidInput("exit date is before the entry date")
+            raise InvalidInputError("exit date is before the entry date")
         before = trade_snapshot(_to_trade(row))
         row.exit_price = exit_price
         row.exit_date = _as_dt(exit_date)
@@ -611,6 +618,7 @@ class Repo:
         for k in ("account_size", "base_risk_pct", "growth_risk_pct", "min_equity"):
             out[k] = float(out[k])
         out["disclaimer_accepted_at"] = _iso(row.disclaimer_accepted_at)
+        out["effective_thresholds"] = resolve_thresholds(out["thresholds"]).to_dict()
         return out
 
     async def get_settings(self, user_id: UUID) -> dict[str, Any]:
@@ -621,7 +629,7 @@ class Repo:
     async def update_settings(self, user_id: UUID, changes: dict[str, Any]) -> dict[str, Any]:
         unknown = set(changes) - set(SETTINGS_FIELDS)
         if unknown:
-            raise InvalidInput(f"unknown settings: {sorted(unknown)}")
+            raise InvalidInputError(f"unknown settings: {sorted(unknown)}")
         row = await self._settings_row(user_id)
         before = {k: _jsonable(getattr(row, k)) for k in changes}
         for key, value in changes.items():

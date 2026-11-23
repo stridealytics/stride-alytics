@@ -519,7 +519,7 @@ Migration `007_persistence_logs.sql` (down file included) added what the backend
 
 **Append-only logs.** `signal_log` and `audit_events` are protected in two layers: RLS gives the owner only SELECT and INSERT (no UPDATE/DELETE policies), and a trigger (`prevent_log_mutation`) raises on UPDATE, DELETE and TRUNCATE for every role. They deliberately have no foreign key to `users`, so deleting a user neither deletes nor is blocked by history. The application adds a third guard (`ImmutableRecordError`).
 
-**Name collisions.** The alpha pipeline's `supabase_schema.sql` also defines tables named `trades` and `audit_log` with different columns. If both are created in one Supabase project they clash. The new audit table is therefore called `audit_events`; the `trades` clash predates this migration (see `docs/TODO/PENDING.md`).
+**Name collisions.** The alpha pipeline's `supabase_schema.sql` also defines tables named `trades` and `audit_log` with different columns. If both are created in one Supabase project they clash. The new audit table is therefore called `audit_events`; the `trades` clash predates this migration (see `docs/TODO/PENDING-WORK.md`).
 
 **Dev/test database.** The backend uses PostgreSQL when `DATABASE_URL` is set and an in-memory SQLite database otherwise (data is lost on restart; a warning is logged). The ORM models define the schema for SQLite; the `.sql` migrations are the source of truth for PostgreSQL, so keep the two in step.
 
@@ -538,3 +538,11 @@ The Weekly Picks page reads the existing `weekly_picks` table (written by the sc
 ## 18. Saved scenarios (migration 010)
 
 `010_scenarios.sql` (down file included) adds `scenarios`: a user's named stress tests with their shocks (`params`: `spot_pct`, `iv_shift`, `days_forward`) in JSONB, unique per user and name. Row-level security limits each row to its owner. Saving and deleting a scenario writes an `audit_events` row.
+
+## 19. Rule thresholds (migration 011)
+
+`011_rule_thresholds.sql` (down file included) adds `user_settings.thresholds` (JSONB, default `{}`). It holds only the rule thresholds the user changed; any missing key uses the default in `backend/app/domain/thresholds.py`, which also defines each key's allowed range. Changes go through `PUT /settings` and write a `settings.update` row to `audit_events` (before and after values).
+
+## 20. Entry EV on trades (migration 012)
+
+`012_trade_entry_ev.sql` (down file included) adds `trades.entry_ev` (NUMERIC(12,2), nullable): the expected value in dollars computed when a short option was opened (`app/domain/ev.py:entry_ev`: PoP from the live delta, gain = the credit kept, loss = the risk amount). It is NULL for stock, long options, back-dated entries and anything missing an input. `/analytics/ev-calibration` averages it per layer.

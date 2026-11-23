@@ -15,7 +15,6 @@ stridealytics/
 ├── backend/                           # Backend API (FastAPI)
 ├── database/                          # Database (Supabase migrations)
 ├── scheduler/                         # Schedulers (GitHub Actions)
-├── shared/                            # Shared logic (Types, utils, constants)
 ├── infra/                             # Infrastructure configs (Docker, Vercel, Render)
 └── docs/                              # Documentation (this folder)
 ```
