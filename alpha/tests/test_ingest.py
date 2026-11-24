@@ -181,9 +181,15 @@ def test_strategy_tag_reads_live_above_below_trend() -> None:
 def test_strategy_tag_survives_missing_iv_rank_and_trend() -> None:
     from app.screener.weekly_watchlist import _compute_strategy_tag as tag
 
-    assert tag({"IV Rank (1y)": None, "Trend (Above/Below 20/50/200 EMA)": None}) == "Directional Spread"
+    assert (
+        tag({"IV Rank (1y)": None, "Trend (Above/Below 20/50/200 EMA)": None})
+        == "Directional Spread"
+    )
     assert tag({"IV Rank (1y)": float("nan")}) == "Directional Spread"
-    assert tag({"IV Rank (1y)": 60, "Trend (Above/Below 20/50/200 EMA)": None}) == "Iron Condor / Short Strangle"
+    assert (
+        tag({"IV Rank (1y)": 60, "Trend (Above/Below 20/50/200 EMA)": None})
+        == "Iron Condor / Short Strangle"
+    )
 
 
 def test_too_many_failed_tickers_raises(monkeypatch) -> None:
@@ -251,7 +257,7 @@ def test_index_table_is_parsed_without_lxml() -> None:
 
     html = (
         '<table id="constituents"><tr><th>Symbol</th><th>Security</th></tr>'
-        '<tr><td><a>AAPL</a></td><td>Apple</td></tr>'
+        "<tr><td><a>AAPL</a></td><td>Apple</td></tr>"
         "<tr><td>BRK.B</td><td>Berkshire</td></tr><tr><td></td><td>blank</td></tr></table>"
     )
     assert table_column(html, "Symbol") == ["AAPL", "BRK.B"]

@@ -98,7 +98,9 @@ def weekly_watchlist(df: pd.DataFrame) -> pd.DataFrame:
     # Say so, so a data gap is not mistaken for an earnings conflict.
     unknown = int(((df["Option Score"] >= 6) & df["Next Earnings Date"].isna()).sum())
     if unknown:
-        print(f"[INFO] {unknown} ticker(s) scoring 6+ left off the watchlist: earnings date unknown.")
+        print(
+            f"[INFO] {unknown} ticker(s) scoring 6+ left off the watchlist: earnings date unknown."
+        )
 
     weekly = df[
         (df["Option Score"] >= 6) & (df["Next Earnings Date"] > today + pd.Timedelta(days=14))
