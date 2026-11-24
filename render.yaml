@@ -1,6 +1,7 @@
 services:
   - type: web
     name: stridealytics-api
+    branch: develop
     rootDirectory: backend
     env: python
     # Use a fully-qualified patch version so Render installs the exact
