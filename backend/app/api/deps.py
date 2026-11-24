@@ -20,7 +20,7 @@ def resolve_user_uuid(raw: str) -> UUID:
     """Supabase ids are UUIDs; dev tokens use arbitrary strings, mapped deterministically."""
     try:
         return UUID(raw)
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         return uuid.uuid5(uuid.NAMESPACE_DNS, raw)
 
 

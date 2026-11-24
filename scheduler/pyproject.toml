@@ -2,21 +2,21 @@
 name = "stride-alytics-scheduler"
 version = "0.1.0"
 description = "StrideAlytics platform — scheduled tasks (market data, Greeks, weekly picks)"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.15,<3.16"
 license = "BSD-3-Clause"
 
 dependencies = [
     # --- Shared Core Utilities ---
-    "pydantic>=2.13.0",
+    "pydantic>=2.14.0",
     "supabase>=2.8.1",
     "python-dotenv>=1.0.1",
-    "httpx>=0.27.2",
-    
+    "httpx>=0.28.1",
+
     # --- Market Data Feed ---
-    "yfinance>=0.2.43",
+    "yfinance>=1.4.1",
 
     # --- Reused backend modules (app.services.*) log through structlog ---
-    "structlog>=24.4.0",
+    "structlog>=26.1.0",
     "email-validator>=2.2.0",
 ]
 
@@ -32,7 +32,7 @@ packages = ["scripts/"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py315"
 
 [tool.uv]
 link-mode = "copy"

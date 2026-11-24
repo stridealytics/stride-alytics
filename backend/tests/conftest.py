@@ -31,12 +31,16 @@ from app.services.position_data import get_position_data_provider  # noqa: E402
 from app.services.returns_data import get_returns_provider  # noqa: E402
 from app.services.sector_data import get_sector_provider  # noqa: E402
 from app.services.symbol_data import get_symbol_data_provider  # noqa: E402
+from app.utils.asyncio_utils import psycopg_loop_factory  # noqa: E402
 
 
 @pytest.fixture
 def client() -> TestClient:
     """A FastAPI test client. Override `get_current_user` per-test for auth."""
-    return TestClient(app)
+    return TestClient(
+        app,
+        backend_options={"loop_factory": psycopg_loop_factory()},
+    )
 
 
 @pytest.fixture
@@ -102,7 +106,10 @@ def _fresh_database(tmp_path: Path):
         database.configure_engine(f"sqlite+aiosqlite:///{db_file}")
     yield
     if database.engine is not None:
-        asyncio.run(database.engine.dispose())
+        asyncio.run(
+            database.engine.dispose(),
+            loop_factory=psycopg_loop_factory(),
+        )
 
 
 # --------------------------------------------------------------------------- market-data fakes

@@ -108,6 +108,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   // Collapsed by default (FR-1050). It opens when you land on a tool page so the active link is visible.
   const [toolsOpen, setToolsOpen] = useState(() => isToolPath(pathname));
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
     if (isToolPath(pathname)) setToolsOpen(true);
   }, [pathname]);
 

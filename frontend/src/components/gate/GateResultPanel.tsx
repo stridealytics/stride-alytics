@@ -20,8 +20,8 @@ export function GateResultPanel({ clear, status, reasons, notEvaluated = [], mes
       {message && <p className="mt-1">{message}</p>}
       {reasons.length > 0 && (
         <ul className="mt-1 list-disc pl-5 space-y-0.5">
-          {reasons.map((r, i) => (
-            <li key={`${r.rule_id}-${i}`}>
+          {reasons.map((r) => (
+            <li key={r.rule_id}>
               <span className="font-mono text-xs mr-1">{r.rule_id}</span>
               {r.message}
               {r.kind === "data" && <span className="ml-1 text-xs italic">(could not verify)</span>}

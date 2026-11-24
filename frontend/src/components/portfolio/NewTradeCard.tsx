@@ -22,7 +22,7 @@ export function NewTradeCard({ portfolioId }: { portfolioId: string }) {
   const [symbol, setSymbol] = useState("AAPL");
   const [tradeType, setTradeType] = useState<TradeType>("put");
   const [direction, setDirection] = useState<Direction>("short");
-  const [entryDate, setEntryDate] = useState(todayLocal());
+  const [entryDate, setEntryDate] = useState(() => todayLocal());
   const [entryPrice, setEntryPrice] = useState("1.00");
   const [quantity, setQuantity] = useState("1");
   const [layer, setLayer] = useState<"" | Layer>("base");

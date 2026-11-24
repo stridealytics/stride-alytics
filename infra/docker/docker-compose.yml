@@ -40,7 +40,7 @@ services:
     networks: [stridealytics]
 
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: stridealytics-db
     restart: unless-stopped
     environment:
@@ -61,7 +61,7 @@ services:
 
   # ---- Optional tooling (start with --profile tools) ----
   adminer:
-    image: adminer:latest
+    image: adminer:4.8.1
     container_name: stridealytics-adminer
     profiles: ["tools"]
     restart: unless-stopped

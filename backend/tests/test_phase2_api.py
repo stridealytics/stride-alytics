@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app import database
 from app.domain.regime_score import RegimeScore
 from app.repositories.sql import Repo
+from app.utils.asyncio_utils import psycopg_loop_factory
 
 ALICE = {"Authorization": "Bearer dev:alice"}
 BOB = {"Authorization": "Bearer dev:bob"}
@@ -469,7 +470,7 @@ def test_a_state_change_is_written_to_the_signal_log(client: TestClient) -> None
                 )
             )
 
-    asyncio.run(seed_yesterday())
+    asyncio.run(seed_yesterday(), loop_factory=psycopg_loop_factory())
     client.get("/api/v1/regime/score", headers=ALICE)
     changes = _signals(client, ALICE)["data"]
     assert len(changes) == 1 and changes[0]["kind"] == "regime"

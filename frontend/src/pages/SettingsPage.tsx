@@ -19,6 +19,7 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
     if (settings.data) setForm(toForm(settings.data));
   }, [settings.data]);
 

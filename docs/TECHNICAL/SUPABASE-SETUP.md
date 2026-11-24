@@ -206,6 +206,9 @@ uv sync
 uv run uvicorn app.main:app --reload
 ```
 
+Uvicorn's reload mode selects Psycopg's required `SelectorEventLoop` on
+Windows. The repository's `run.py` entry point also selects it explicitly.
+
 Check the health endpoint:
 ```bash
 curl http://localhost:8000/api/v1/health
