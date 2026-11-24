@@ -51,6 +51,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (devAuthBypass) {
       devAdminLogin();
+      // eslint-disable-next-line @eslint-react/set-state-in-effect
       setReady(true);
       return;
     }

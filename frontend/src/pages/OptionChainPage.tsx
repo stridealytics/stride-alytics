@@ -15,6 +15,7 @@ function SideCells({ side, mirror }: { side: ChainSide | null; mirror?: boolean 
   return (
     <>
       {(mirror ? [...cells].reverse() : cells).map((c, i) => (
+        // eslint-disable-next-line @eslint-react/no-array-index-key -- positional cells have no stable id
         <td key={i} className="px-2 py-1.5 text-right tabular-nums">
           {c}
         </td>

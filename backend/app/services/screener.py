@@ -92,7 +92,7 @@ def _num(value: Any, default: float = 0.0) -> float:
     """
     try:
         number = float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
     return number if math.isfinite(number) else default
 

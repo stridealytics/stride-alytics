@@ -25,6 +25,7 @@ export function RuleThresholds() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
     if (info.data) setForm(toThresholdForm(info.data.effective));
   }, [info.data]);
 
