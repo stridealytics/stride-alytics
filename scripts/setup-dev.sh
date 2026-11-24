@@ -1,60 +1,35 @@
-#!/bin/bash
-# Setup development environment with pre-commit hooks for both frontend and backend
+#!/usr/bin/env bash
+set -euo pipefail
+# Setup development environment for frontend, backend, and alpha.
 
-echo "🚀 Setting up StrideAlytics development environment..."
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
 
-# Frontend setup
-echo ""
-echo "📦 Installing frontend dependencies..."
-cd frontend
-npm install
+initialize_env_file() {
+  local project="$1"
+  if [[ ! -f "$project/.env" && -f "$project/.env.example" ]]; then
+    cp "$project/.env.example" "$project/.env"
+    echo "Created $project/.env from its example; review local settings."
+  fi
+}
 
-echo "🔗 Installing husky pre-commit hooks..."
-npx husky install
+for project in frontend backend alpha; do
+  initialize_env_file "$project"
+done
 
-cd ..
+echo "Installing frontend dependencies..."
+HUSKY=0 npm ci --prefix frontend
+npm exec --prefix frontend -- husky install
 
-# Backend setup
-echo ""
-echo "📦 Installing backend dependencies..."
-cd backend
-uv sync
+echo "Installing backend dependencies..."
+uv sync --project backend
 
-cd ..
+echo "Installing alpha dependencies..."
+uv sync --project alpha
 
-echo ""
-echo "✅ Setup complete!"
-echo ""
-echo "📝 Pre-commit checks now active for:"
-echo ""
-echo "   FRONTEND:"
-echo "   ✓ TypeScript type validation"
-echo "   ✓ ESLint code quality checks"
-echo "   ✓ Production build verification"
-echo ""
-echo "   BACKEND:"
-echo "   ✓ Ruff linting (style & quality)"
-echo "   ✓ Black code formatting"
-echo "   ✓ MyPy type checking"
-echo "   ✓ Pytest test suite"
-echo ""
-echo "🎯 Workflow:"
-echo "   1. Make your changes (frontend, backend, or both)"
-echo "   2. Run: git add ."
-echo "   3. Run: git commit -m 'your message'"
-echo "   4. Pre-commit hooks auto-run relevant checks"
-echo "   5. Commit succeeds ✅ or blocked ❌ if checks fail"
-echo ""
-echo "💡 Run checks manually anytime:"
-echo ""
-echo "   FRONTEND:"
-echo "   npm run type-check    # TypeScript validation"
-echo "   npm run lint          # ESLint"
-echo "   npm run build         # Full build"
-echo ""
-echo "   BACKEND:"
-echo "   uv run ruff check .       # Ruff linting"
-echo "   uv run black --check .    # Black format check"
-echo "   uv run black .            # Auto-format code"
-echo "   uv run mypy app           # MyPy type checking"
-echo "   uv run pytest tests       # Run tests"
+echo "Setup complete."
+echo "Frontend: cd frontend && npm run dev"
+echo "Backend:  cd backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
+echo "Alpha UI: cd alpha && uv run streamlit run app/streamlit_app.py --server.address 127.0.0.1"
+echo "Alpha test: cd alpha && uv run test_local.py"
+echo "Review each .env.example; local .env files are never overwritten."

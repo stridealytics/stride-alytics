@@ -45,7 +45,8 @@ class Settings(BaseSettings):
     # --- CORS ---
     CORS_ORIGINS: str = "*"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # `.env.local` can safely override machine-specific settings without changing `.env`.
+    model_config = {"env_file": (".env", ".env.local"), "env_file_encoding": "utf-8"}
 
 
 settings = Settings()

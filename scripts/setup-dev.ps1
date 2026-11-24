@@ -1,60 +1,45 @@
-# Setup development environment with pre-commit hooks for both frontend and backend
-# Run from project root: .\scripts\setup-dev.ps1
+# Set up frontend, backend, and alpha from the repository root.
 
-Write-Host "🚀 Setting up StrideAlytics development environment..." -ForegroundColor Green
-Write-Host ""
+$ErrorActionPreference = 'Stop'
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+Set-Location $repoRoot
 
-# Frontend setup
-Write-Host "📦 Installing frontend dependencies..." -ForegroundColor Cyan
-Push-Location frontend
-npm install
+foreach ($project in @('frontend', 'backend', 'alpha')) {
+    $projectRoot = Join-Path $repoRoot $project
+    $example = Join-Path $projectRoot '.env.example'
+    $localEnv = Join-Path $projectRoot '.env'
+    if (-not (Test-Path $localEnv) -and (Test-Path $example)) {
+        Copy-Item $example $localEnv
+        Write-Host ('Created ' + $project + '/.env from the example; review local settings.')
+    }
+}
 
-Write-Host "🔗 Installing husky pre-commit hooks..." -ForegroundColor Cyan
-npx husky install
+Write-Host 'Installing frontend dependencies...'
+$previousHusky = $env:HUSKY
+$env:HUSKY = '0'
+npm ci --prefix frontend
+$frontendInstallStatus = $LASTEXITCODE
+if ($null -eq $previousHusky) {
+    Remove-Item Env:HUSKY
+} else {
+    $env:HUSKY = $previousHusky
+}
+if ($frontendInstallStatus -ne 0) { throw 'Frontend dependency installation failed.' }
 
-Pop-Location
+npm exec --prefix frontend -- husky install
+if ($LASTEXITCODE -ne 0) { throw 'Husky setup failed.' }
 
-# Backend setup
-Write-Host ""
-Write-Host "📦 Installing backend dependencies..." -ForegroundColor Cyan
-Push-Location backend
-uv sync
+Write-Host 'Installing backend dependencies...'
+uv sync --project backend
+if ($LASTEXITCODE -ne 0) { throw 'Backend dependency installation failed.' }
 
-Pop-Location
+Write-Host 'Installing alpha dependencies...'
+uv sync --project alpha
+if ($LASTEXITCODE -ne 0) { throw 'Alpha dependency installation failed.' }
 
-Write-Host ""
-Write-Host "✅ Setup complete!" -ForegroundColor Green
-Write-Host ""
-Write-Host "📝 Pre-commit checks now active for:" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "   FRONTEND:" -ForegroundColor Cyan
-Write-Host "   ✓ TypeScript type validation"
-Write-Host "   ✓ ESLint code quality checks"
-Write-Host "   ✓ Production build verification"
-Write-Host ""
-Write-Host "   BACKEND:" -ForegroundColor Cyan
-Write-Host "   ✓ Ruff linting (style & quality)"
-Write-Host "   ✓ Black code formatting"
-Write-Host "   ✓ MyPy type checking"
-Write-Host "   ✓ Pytest test suite"
-Write-Host ""
-Write-Host "🎯 Workflow:" -ForegroundColor Yellow
-Write-Host "   1. Make your changes (frontend, backend, or both)"
-Write-Host "   2. Run: git add ."
-Write-Host "   3. Run: git commit -m 'your message'"
-Write-Host "   4. Pre-commit hooks auto-run relevant checks"
-Write-Host "   5. Commit succeeds ✅ or blocked ❌ if checks fail"
-Write-Host ""
-Write-Host "💡 Run checks manually anytime:" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "   FRONTEND:" -ForegroundColor Cyan
-Write-Host "   npm run type-check    # TypeScript validation"
-Write-Host "   npm run lint          # ESLint"
-Write-Host "   npm run build         # Full build"
-Write-Host ""
-Write-Host "   BACKEND:" -ForegroundColor Cyan
-Write-Host "   uv run ruff check .       # Ruff linting"
-Write-Host "   uv run black --check .    # Black format check"
-Write-Host "   uv run black .            # Auto-format code"
-Write-Host "   uv run mypy app           # MyPy type checking"
-Write-Host "   uv run pytest tests       # Run tests"
+Write-Host 'Setup complete.'
+Write-Host 'Frontend: cd frontend; npm run dev'
+Write-Host 'Backend:  cd backend; uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000'
+Write-Host 'Alpha UI: cd alpha; uv run streamlit run app/streamlit_app.py --server.address 127.0.0.1'
+Write-Host 'Alpha test: cd alpha; uv run test_local.py'
+Write-Host 'Existing .env files are preserved. Review each .env.example.'
