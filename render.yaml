@@ -9,8 +9,8 @@ services:
     # `python-downloads=never` default will refuse to auto-fetch).
     # `.python-version` is the secondary pin; either one works.
     pythonVersion: "3.12.13"
-    buildCommand: "pip install uv && uv sync --frozen --no-dev"
-    startCommand: "uv run --frozen --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install uv && uv sync --frozen --no-dev --active"
+    startCommand: "uv run --active uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     numInstances: 1
     plan: free # sleeps when idle; use `starter` for always-on
     healthCheckPath: /health
