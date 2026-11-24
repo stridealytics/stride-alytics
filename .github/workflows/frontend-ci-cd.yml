@@ -20,14 +20,12 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          # Vite 8 requires Node ^20.19 || >=22.12 — Node 20.0–20.18 also
-          # fails. Pin to Node 22 LTS to match the team standard and
-          # Vite 8's documented engine floor.
+          # Node 22 LTS meets Vite 8's >=22.12 and locked jsdom/undici's >=22.19 floors.
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
@@ -50,7 +48,7 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy to Vercel (Preview)
         env:
@@ -70,7 +68,7 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy to Vercel (Production)
         env:
