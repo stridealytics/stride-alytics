@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as HotToaster } from "react-hot-toast";
@@ -44,9 +44,20 @@ const queryClient = new QueryClient({
 
 function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const devAdminLogin = useAuthStore((s) => s.devAdminLogin);
+  const devAuthBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === "true";
+  const [ready, setReady] = useState(!devAuthBypass);
+
   useEffect(() => {
+    if (devAuthBypass) {
+      devAdminLogin();
+      setReady(true);
+      return;
+    }
     hydrate();
-  }, [hydrate]);
+  }, [devAdminLogin, devAuthBypass, hydrate]);
+
+  if (!ready) return <div className="p-6 text-sm text-gray-500">Loading…</div>;
   return <>{children}</>;
 }
 

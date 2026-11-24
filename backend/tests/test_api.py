@@ -282,8 +282,13 @@ def test_trades_get_unique_ids_and_close_targets_the_right_one(
 # ----------------------------------------------------------------- auth hardening
 
 
-def test_refresh_token_is_read_from_the_body_not_the_url(client: TestClient) -> None:
+def test_refresh_token_is_read_from_the_body_not_the_url(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # Without Supabase configured the endpoint is not implemented, but the request shape is checked.
+    from app.api.v1.endpoints import auth as auth_endpoints
+
+    monkeypatch.setattr(auth_endpoints, "_supabase_env_present", lambda: False)
     assert client.post("/api/v1/auth/refresh", json={"refresh_token": "abc"}).status_code in (
         501,
         502,

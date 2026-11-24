@@ -606,6 +606,62 @@
 
 ---
 
+## Current Local Development Setup
+
+Run the setup script from the repository root on a fresh machine:
+
+```powershell
+.\scripts\setup-dev.ps1
+```
+
+```bash
+bash scripts/setup-dev.sh
+```
+
+The scripts install frontend, backend, and alpha dependencies and copy each
+`.env.example` only when that project's `.env` does not exist. They never
+overwrite existing local settings. Review the copied files and fill in
+credentials only for integrations you plan to use.
+
+The frontend's `VITE_DEV_AUTH_BYPASS=true` opens the dashboard with a dev token
+only in Vite development mode. Production builds ignore the bypass. The local
+backend must use `ENVIRONMENT=development` to accept that token. Leave
+`DATABASE_URL` unset for the in-memory SQLite database; its data resets on
+restart. A machine-specific `backend/.env.local` can override `.env` without
+changing or committing it.
+
+To test with actual backend data, configure `DATABASE_URL` and the Supabase
+auth settings in `backend/.env` for the same Supabase project, set
+`VITE_API_URL=http://localhost:8000`, and set
+`VITE_DEV_AUTH_BYPASS=false` before starting the frontend. Sign in with a
+Supabase Auth user. This connects the local app to the configured database;
+mutations affect that database, so use a separate development project if you
+need write testing without touching personal data. Alpha's dashboard reads its
+configured Supabase project directly; run the pipeline with `--dry-run` to
+avoid Supabase or Google Sheets writes.
+
+Run each app in its own terminal:
+
+```powershell
+cd backend
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+```powershell
+cd frontend
+npm run dev -- --host 127.0.0.1
+```
+
+```powershell
+cd alpha
+uv run streamlit run app/streamlit_app.py --server.address 127.0.0.1
+```
+
+Alpha's dashboard needs its Supabase credentials in `alpha/.env`. Use
+`uv run test_local.py` for the local pipeline test, or
+`uv run python app/main.py --dry-run` to compute without database or Sheets
+writes. Do not commit any `.env` file.
+
 ## Quick Reference
 
 ### Commands

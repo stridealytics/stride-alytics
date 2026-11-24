@@ -36,11 +36,6 @@ if [ "$FRONTEND_CHANGED" -gt 0 ]; then
   fi
 
   echo "🏗  Production build (clean + tsc + vite build)..."
-  npm run prebuild:prod
-  if [ $? -ne 0 ]; then
-    echo "❌ Pre-build (clean + type-check) failed. Commit aborted."
-    exit 1
-  fi
   npm run build:prod
   if [ $? -ne 0 ]; then
     echo "❌ Production build failed. Commit aborted."
@@ -57,7 +52,7 @@ if [ "$BACKEND_CHANGED" -gt 0 ]; then
   cd backend
 
   echo "🧹 Clear __pycache__ + .pytest_cache + .ruff_cache + .mypy_cache..."
-  find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .ruff_cache -o -name .mypy_cache -o -name .venv \) -prune -exec rm -rf {} + 2>/dev/null || true
+  find . -type d \( -name __pycache__ -o -name .pytest_cache -o -name .ruff_cache -o -name .mypy_cache \) -prune -exec rm -rf {} + 2>/dev/null || true
   if [ $? -ne 0 ]; then
     echo "❌ Clean step failed. Commit aborted."
     exit 1
