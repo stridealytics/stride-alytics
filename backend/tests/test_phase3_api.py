@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from app import database
 from app import models as m
 from app.domain.alerts import MarketInput
+from app.utils.asyncio_utils import psycopg_loop_factory
 
 ALICE = {"Authorization": "Bearer dev:alice"}
 BOB = {"Authorization": "Bearer dev:bob"}
@@ -300,7 +301,7 @@ def _seed_picks() -> None:
                 )
             await s.commit()
 
-    asyncio.run(go())
+    asyncio.run(go(), loop_factory=psycopg_loop_factory())
 
 
 def test_picks_are_empty_until_the_weekly_job_has_run(client: TestClient) -> None:

@@ -11,6 +11,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from app.utils.asyncio_utils import psycopg_loop_factory
+
 
 def test_health(client: TestClient) -> None:
     r = client.get("/api/v1/health")
@@ -340,7 +342,7 @@ def test_production_refuses_in_memory_database(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(settings, "DATABASE_URL", None)
     monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     with pytest.raises(RuntimeError, match="DATABASE_URL"):
-        asyncio.run(database.init_db())
+        asyncio.run(database.init_db(), loop_factory=psycopg_loop_factory())
 
 
 def test_unsupported_token_algorithm_is_rejected(client: TestClient, jwt_secret: str) -> None:

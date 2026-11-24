@@ -29,6 +29,7 @@ from sqlalchemy import text  # noqa: E402
 from app import database  # noqa: E402
 from app.repositories.sql import Repo  # noqa: E402
 from app.services.portfolio import Trade  # noqa: E402
+from app.utils.asyncio_utils import psycopg_loop_factory  # noqa: E402
 
 results: list[tuple[str, bool, str]] = []
 
@@ -183,4 +184,4 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(asyncio.run(main()))
+    raise SystemExit(asyncio.run(main(), loop_factory=psycopg_loop_factory()))
