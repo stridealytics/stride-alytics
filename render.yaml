@@ -21,7 +21,9 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: CORS_ORIGINS
-        value: https://stridealytics.com,https://www.stridealytics.com
+        value: https://stride-alytics-frontend.vercel.app,https://stridealytics.com,https://www.stridealytics.com
+      - key: UV_PYTHON_DOWNLOADS
+        value: automatic
       - key: APP_NAME
         value: StrideAlytics
       - key: DEBUG
