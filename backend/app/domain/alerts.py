@@ -132,7 +132,7 @@ def evaluate_position(
 
     def add(
         code: str, severity: str, message: str, action: str = "hold", rule_id: str | None = None
-    ):
+    ) -> None:
         reasons.append(AlertReason(code, severity, message, action, rule_id))
 
     option = _is_option(pos)

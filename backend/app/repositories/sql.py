@@ -20,6 +20,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import models as m
 from app.domain.regime_score import RegimeScore
@@ -512,7 +513,9 @@ class Repo:
         await self.s.commit()
 
     @staticmethod
-    def _log_filters(model: Any, user_id: UUID, start: datetime | None, end: datetime | None):
+    def _log_filters(
+        model: Any, user_id: UUID, start: datetime | None, end: datetime | None
+    ) -> list[ColumnElement[bool]]:
         cond = [model.user_id == user_id]
         if start is not None:
             cond.append(model.occurred_at >= start)
@@ -674,7 +677,7 @@ class Repo:
                 .group_by(m.Trade.band)
             )
         ).all()
-        return {band: float(total or 0) for band, total in rows}
+        return {band: float(total or 0) for band, total in rows if band is not None}
 
     # ----------------------------------------------------------- regime history
 

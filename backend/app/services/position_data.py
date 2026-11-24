@@ -24,9 +24,10 @@ CACHE_TTL_SECONDS = 60
 NEGATIVE_TTL_SECONDS = 30
 CACHE_MAX_ENTRIES = 256
 PositionDataProvider = Callable[..., MarketInput]
+PositionCacheKey = tuple[str, str, float | None, date | None]
 
 _lock = threading.Lock()
-_cache: dict[tuple, tuple[float, MarketInput]] = {}
+_cache: dict[PositionCacheKey, tuple[float, MarketInput]] = {}
 
 
 def clear_cache() -> None:
@@ -50,7 +51,9 @@ def _spot(ticker: object) -> float | None:
     return None
 
 
-def _option_quote(ticker: object, expiry: date, strike: float, trade_type: str):
+def _option_quote(
+    ticker: object, expiry: date, strike: float, trade_type: str
+) -> tuple[float | None, float | None]:
     """(mark, implied vol) for one contract, or (None, None)."""
     try:
         chain = ticker.option_chain(expiry.isoformat())  # type: ignore[attr-defined]

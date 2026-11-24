@@ -8,7 +8,7 @@ a Supabase JWT verifier. The actual Supabase REST call lives in
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from jose import JWTError, jwt
@@ -69,18 +69,24 @@ def _get_jwks(force: bool = False) -> dict[str, Any]:
     try:
         resp = httpx.get(url, timeout=5)
         resp.raise_for_status()
-        keys = resp.json()
+        payload: object = resp.json()
     except Exception as exc:  # noqa: BLE001 - any failure means we cannot verify
         raise JWTError(f"could not load signing keys: {exc}") from exc
+    if not isinstance(payload, dict) or not all(isinstance(key, str) for key in payload):
+        raise JWTError("JWKS response must be a JSON object")
+    keys = cast(dict[str, Any], payload)
     _jwks_cache = (now, keys)
     return keys
 
 
 def _signing_key(kid: str | None) -> dict[str, Any]:
     for attempt in (False, True):  # retry once with a fresh fetch to pick up rotated keys
-        for key in _get_jwks(force=attempt).get("keys", []):
-            if kid is None or key.get("kid") == kid:
-                return key
+        raw_keys = _get_jwks(force=attempt).get("keys", [])
+        if not isinstance(raw_keys, list):
+            raise JWTError("JWKS response has an invalid keys field")
+        for key in raw_keys:
+            if isinstance(key, dict) and (kid is None or key.get("kid") == kid):
+                return cast(dict[str, Any], key)
     raise JWTError("no matching signing key for token")
 
 

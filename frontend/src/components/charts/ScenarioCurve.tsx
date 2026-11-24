@@ -10,7 +10,11 @@ export function ScenarioCurve({ ladder }: { ladder: { spot_pct: number; total_ch
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="move" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} width={56} tickFormatter={(v: number) => `$${v}`} />
-          <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L change"]} />
+          <Tooltip
+            formatter={(value) =>
+              value === undefined ? ["", "P&L change"] : [`$${Number(value).toFixed(2)}`, "P&L change"]
+            }
+          />
           <ReferenceLine y={0} stroke="#6b7280" />
           <Line type="monotone" dataKey="change" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3 }} name="P&L change" />
         </LineChart>

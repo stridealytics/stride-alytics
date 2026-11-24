@@ -118,11 +118,12 @@ def combine(
 ) -> tuple[float | None, list[str]]:
     """Weighted average of the available components. Returns ``(score, missing_names)``."""
     missing = [k for k, v in components.items() if v is None]
-    used = {k: weights.get(k, 0.0) for k, v in components.items() if v is not None}
+    available = {k: v for k, v in components.items() if v is not None}
+    used = {k: weights.get(k, 0.0) for k in available}
     total = sum(used.values())
     if total <= 0:
         return None, missing
-    score = sum(components[k] * w for k, w in used.items()) / total  # type: ignore[operator]
+    score = sum(available[k] * w for k, w in used.items()) / total
     return round(max(0.0, min(100.0, score)), 1), missing
 
 

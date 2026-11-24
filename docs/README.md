@@ -42,9 +42,9 @@ Welcome to the **StrideAlytics Documentation** – your comprehensive guide to t
 #### Layer-Specific Architecture (LAYERS/ subfolder)
 | Layer | File | Tech Stack |
 |-------|------|-----------|
-| 🎨 Frontend | **01-FRONTEND-LAYER.md** | React 19 + Vite + TailwindCSS 4 |
+| 🎨 Frontend | **01-FRONTEND-LAYER.md** | React 19 + Vite 8 + TailwindCSS 4 |
 | 📱 Mobile | **02-MOBILE-LAYER.md** | React Native + Expo + NativeWind |
-| ⚙️ Backend | **03-BACKEND-LAYER.md** | FastAPI + Uvicorn + Python 3.12 |
+| ⚙️ Backend | **03-BACKEND-LAYER.md** | FastAPI + Uvicorn + Python 3.12–3.15 |
 | 🗄️ Database | **04-DATABASE-LAYER.md** | PostgreSQL 15+ + Supabase Auth |
 | ⏰ Scheduler | **05-SCHEDULER-LAYER.md** | GitHub Actions + Python CRON |
 | 🚀 Deployment | **06-DEPLOYMENT-LAYER.md** | Vercel, Render, Supabase |

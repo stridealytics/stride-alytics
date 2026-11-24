@@ -2,6 +2,8 @@
 
 **React + Vite + Tailwind web application architecture**
 
+Node.js **22.19.0 or newer** is required by the frontend dependency set.
+
 ---
 
 ## Overview
@@ -11,10 +13,10 @@ The **Frontend Layer** is the primary user interface for StrideAlytics, built wi
 **Key Characteristics:**
 - ✅ Modern React 19 with hooks and functional components
 - ✅ Server-side rendering ready (optional)
-- ✅ Type-safe with TypeScript (optional)
+- ✅ Type-safe with TypeScript
 - ✅ Component-driven architecture
 - ✅ Responsive design with TailwindCSS
-- 🔄 Charting (planned; no chart library installed yet)
+- ✅ Charts with Recharts
 - ✅ Client-side state management (Zustand)
 - ✅ Data fetching with React Query
 - ✅ Fast build tool (Vite)
@@ -25,17 +27,18 @@ The **Frontend Layer** is the primary user interface for StrideAlytics, built wi
 
 | Tool | Purpose | Version |
 |------|---------|---------|
-| **React** | UI library | 18+ |
-| **Vite** | Build tool | 4+ |
-| **Charts** | Not built yet (no chart library installed) | — |
-| **TailwindCSS** | Styling | 3+ |
+| **React** | UI library | 19 |
+| **Vite** | Build tool | 8 |
+| **Charts** | Recharts | 3 |
+| **TailwindCSS** | Styling | 4 |
 | **Custom UI components** | `src/components/ui` (Tailwind) | — |
-| **Zustand** | State management | Latest |
-| **React Query** | Data fetching & caching | Latest |
-| **Axios** | HTTP client | Latest |
-| **React Router** | Routing | 6+ |
-| **Vitest** | Unit testing | Latest |
-| **React Testing Library** | Component testing | Latest |
+| **Zustand** | State management | 5 |
+| **React Query** | Data fetching & caching | 5 |
+| **Axios** | HTTP client | 1 |
+| **React Router** | Routing | 7 |
+| **Zod** | Validation | 4 |
+| **Vitest** | Unit testing | 5 |
+| **React Testing Library** | Component testing | 16 |
 
 ---
 

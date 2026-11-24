@@ -72,6 +72,7 @@ def calculate_portfolio_risk(
     for p in positions:
         key = p.sector or UNKNOWN_SECTOR
         by_sector[key] = by_sector.get(key, 0.0) + max(p.risk_amount, 0.0)
+    sector_items = sorted(by_sector.items(), key=lambda kv: -kv[1])
     sectors = [
         {
             "sector": name,
@@ -79,7 +80,7 @@ def calculate_portfolio_risk(
             "pct_of_equity": _pct(value, equity),
             "pct_of_risk": _pct(value, at_risk),
         }
-        for name, value in sorted(by_sector.items(), key=lambda kv: -kv[1])
+        for name, value in sector_items
     ]
 
     margin_pct = _pct(at_risk, equity)
@@ -97,15 +98,15 @@ def calculate_portfolio_risk(
                 f"Capital at risk is {margin_pct}% of equity (limit {limits.max_capital_at_risk_pct:g}%).",
             )
         )
-    for s in sectors:
-        pct = s["pct_of_equity"]
-        raw = s["capital_at_risk"] / equity * 100 if equity > 0 else None
-        if s["sector"] != UNKNOWN_SECTOR and raw is not None and raw > limits.max_sector_risk_pct:
+    for sector, value in sector_items:
+        pct = _pct(value, equity)
+        raw = value / equity * 100 if equity > 0 else None
+        if sector != UNKNOWN_SECTOR and raw is not None and raw > limits.max_sector_risk_pct:
             breaches.append(
                 Breach(
                     "BR-080",
                     "sector",
-                    f"{s['sector']} holds {pct}% of equity at risk (limit {limits.max_sector_risk_pct:g}%).",
+                    f"{sector} holds {pct}% of equity at risk (limit {limits.max_sector_risk_pct:g}%).",
                 )
             )
     if raw_net is not None and raw_net > limits.max_net_delta_pct:

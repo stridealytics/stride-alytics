@@ -8,104 +8,72 @@
 
 ## 1. Frontend (React + Vite + Tailwind)
 
+The frontend requires Node.js **22.19.0 or newer**. The versions below are the
+declared ranges from `frontend/package.json`.
+
 ### Core Framework & Build
 ```
-React                          18.2.0       - UI library & hooks
-Vite                           4.4.0        - Fast build tool & dev server
-TypeScript                     5.1.0        - Type safety
+React                          ^19.0.0      - UI library & hooks
+React DOM                      ^19.0.0      - DOM renderer
+Vite                           ^8.0.16      - Fast build tool & dev server
+TypeScript                     ^5.7.2       - Type safety
 ```
 
 ### UI & Styling
 ```
-TailwindCSS                    3.3.0        - Utility-first CSS framework
-(not used) custom components in src/components/ui
-(not installed) charting library — none chosen yet
-Lucide Icons                   Latest       - Icon set
+TailwindCSS                    ^4.3.1       - Utility-first CSS framework
+Custom UI components           —             - Components in src/components/ui
+Lucide React                   ^0.475.0     - Icon set
 ```
 
 ### State Management & Data
 ```
-Zustand                        4.4.0        - Lightweight state management
-@tanstack/react-query          4.32.0       - Data fetching & caching
-Axios                          1.4.0        - HTTP client
+Zustand                        ^5.0.2       - Lightweight state management
+@tanstack/react-query          ^5.62.0      - Data fetching & caching
+Axios                          ^1.7.9       - HTTP client
 ```
 
 ### Forms & Validation
 ```
-react-hook-form               7.45.0        - Form state management
-Zod                           3.22.0        - TypeScript-first validation
+react-hook-form               ^7.54.2       - Form state management
+Zod                           ^4.6.7        - TypeScript-first validation
 ```
 
 ### Routing & Navigation
 ```
-react-router-dom              6.14.0        - Client-side routing
-history                       5.3.0         - Browser history management
+react-router-dom              ^7.1.1        - Client-side routing
 ```
 
 ### Charts & Visualization
 ```
-Recharts                       (candidate)  - Charting library, not installed
-react-big-calendar            Latest         - Calendar component
+Recharts                       ^3.11.1      - Charting library
 ```
 
 ### Testing
 ```
-Vitest                        0.33.0         - Unit test framework
-@testing-library/react        14.0.0         - React component testing
-@testing-library/user-event   14.4.0         - User interaction simulation
-jsdom                         22.1.0         - DOM simulation
+Vitest                        ^5.1.1        - Unit test framework
+@testing-library/react        ^16.3.3       - React component testing
+@testing-library/user-event   ^14.6.10      - User interaction simulation
+jsdom                         ^31.0.1       - DOM simulation
 ```
 
 ### Development Tools
 ```
-ESLint                        8.45.0         - JavaScript linting
-Prettier                      3.0.0          - Code formatter
-Vite Plugin React             4.1.0          - React plugin for Vite
+ESLint                        ^9.21.0       - JavaScript linting
+Vite Plugin React             ^5.2.0        - React plugin for Vite
 ```
+
+ESLint remains on 9.x because `eslint-plugin-react` does not yet declare
+compatibility with ESLint 10.
 
 ### Build & Deployment
 ```
-Vercel CLI                    Latest         - Deployment tool
+Node.js                       >=22.19.0     - Supported frontend runtime
+Vercel CLI                    Latest        - Deployment tool
 ```
 
-### Complete Dependencies List
-
-```json
-{
-  "devDependencies": {
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/user-event": "^14.4.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.1.0",
-    "autoprefixer": "^10.4.0",
-    "eslint": "^8.45.0",
-    "eslint-config-prettier": "^8.9.0",
-    "postcss": "^8.4.0",
-    "prettier": "^3.0.0",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5.1.0",
-    "vite": "^4.4.0",
-    "vitest": "^0.33.0"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.3.0",
-    "@tanstack/react-query": "^4.32.0",
-    "axios": "^1.4.0",
-    "lucide-react": "^latest",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-hook-form": "^7.45.0",
-    "react-router-dom": "^6.14.0",
-    "recharts": "^2.8.0",
-    "lucide-react": "^0.475.0",
-    "tailwindcss": "^3.3.0",
-    "tremor": "^latest",
-    "zod": "^3.22.0",
-    "zustand": "^4.4.0"
-  }
-}
-```
+The complete dependency manifest is maintained in
+[`frontend/package.json`](../../../frontend/package.json).
 
 ---
 
@@ -233,6 +201,11 @@ The backend supports Python **3.12–3.15**. Python 3.15.2 is used for the
 local default, Docker image, and Render deployment; CI tests Python 3.12,
 3.13, 3.14, and 3.15.
 
+The separate alpha screening pipeline declares Python **3.11–3.15** support
+and uses Pandas **3.1.1** in `alpha/uv.lock`. Its CI matrix tests all five
+Python versions. Formatter and lint targets remain Python 3.11 to preserve
+compatibility with the declared minimum.
+
 Current locked versions are declared in `backend/uv.lock`:
 
 | Package | Locked version | Purpose |
@@ -352,10 +325,11 @@ Axios                         1.4.0         - HTTP client (shared)
 
 | Category | Tool | Version | Purpose |
 |----------|------|---------|---------|
-| **Web Frontend** | React | 18.2 | UI Framework |
-| | Vite | 4.4 | Build Tool |
-| | (none yet) | — | Charting not built |
-| | TailwindCSS | 3.3 | Styling |
+| **Web Frontend** | React | 19 | UI Framework |
+| | Vite | 8 | Build Tool |
+| | Recharts | 3.11 | Charts |
+| | TailwindCSS | 4 | Styling |
+| | Node.js | 22.19+ | Runtime minimum |
 | **Mobile** | React Native | 0.73 | Mobile Framework |
 | | Expo | 50.0 | Development Platform |
 | | NativeWind | Latest | Mobile Styling |

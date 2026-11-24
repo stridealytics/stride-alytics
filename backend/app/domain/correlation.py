@@ -6,7 +6,7 @@ already held adds the same risk twice, so the gate blocks it above a threshold.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from math import sqrt
 
 MIN_OVERLAP = 20  # fewer shared daily returns than this and a correlation means nothing
@@ -32,7 +32,7 @@ def pearson(a: Sequence[float], b: Sequence[float]) -> float | None:
 
 def correlations_with_held(
     candidate: str,
-    returns: dict[str, Sequence[float] | None],
+    returns: Mapping[str, Sequence[float] | None],
     held: Sequence[str],
 ) -> dict[str, float | None]:
     """Correlation of ``candidate`` with each distinct held symbol (None = could not be computed).
