@@ -43,7 +43,7 @@ def install_exception_handlers(app: FastAPI) -> None:
         details = _json_safe_errors(exc.errors())
         log.warning("request.validation_error", errors=details)
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={
                 "success": False,
                 "error": {

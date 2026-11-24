@@ -3,7 +3,7 @@ name = "stride-alytics-backend"
 version = "0.1.0"
 description = "StrideAlytics: Stock and Options Trading System — backend API"
 
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.16"
 
 dependencies = [
     # --- Core ---
@@ -15,7 +15,7 @@ dependencies = [
     "email-validator>=2.2.0",
 
     # --- Database ---
-    "sqlalchemy[asyncio]>=2.0.30,<2.1.0",
+    "sqlalchemy[asyncio]>=2.0.30,<3",
     "psycopg[binary,pool]>=3.2.0,<4.0.0",
 
     # --- Auth ---
@@ -26,8 +26,8 @@ dependencies = [
     "yfinance>=1.4.1",
 
     # --- Data / quant ---
-    "numpy==1.26.4",
-    "pandas>=2.2.3,<3",
+    "numpy>=1.26.4,<3",
+    "pandas>=2.2.3,<4",
 
     # --- Logging ---
     "structlog>=24.4.0",
@@ -38,7 +38,9 @@ dev = [
     "pytest>=8.3.3",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0.0",
-    "ruff>=0.9.0",
+    "httpx2>=2.16.2",
+    # Keep the existing lint baseline while newer Ruff rules are reviewed separately.
+    "ruff>=0.9.0,<0.16",
     "black>=25.1.0",
     "mypy>=1.13.0",
     "types-python-jose>=3.5.0.20260408",
@@ -79,6 +81,7 @@ target-version = ["py312"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
 

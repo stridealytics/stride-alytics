@@ -23,8 +23,12 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend · Python
+    name: Backend · Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
     defaults:
       run:
         working-directory: backend
@@ -37,7 +41,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache uv
         uses: actions/cache@v4

@@ -229,145 +229,35 @@ Expo Prebuild                  Latest         - Native project generation
 
 ## 3. Backend (FastAPI + Python)
 
-### Core Framework
-```
-FastAPI                       0.100.0       - Web framework
-Uvicorn                       0.23.0        - ASGI server
-Pydantic                      2.1.0         - Data validation
-Pydantic Settings             2.1.0         - Configuration management
-Python                        3.11          - Programming language
-```
+The backend supports Python **3.12–3.15**. Python 3.15.2 is used for the
+local default, Docker image, and Render deployment; CI tests Python 3.12,
+3.13, 3.14, and 3.15.
 
-### Database & ORM
-```
-Supabase Python               1.0.0         - Database client
-asyncpg                       0.27.0        - PostgreSQL async driver
-SQLAlchemy                    2.0.0         - SQL toolkit (optional)
-```
+Current locked versions are declared in `backend/uv.lock`:
 
-### Data Processing
-```
-Pandas                        2.0.0         - Data manipulation
-NumPy                         1.24.0        - Numerical computing
-SciPy                         1.11.0        - Scientific computing
-TA-Lib                        0.4.27        - Technical analysis
-```
+| Package | Locked version | Purpose |
+|---------|----------------|---------|
+| FastAPI | 0.165.0 | API framework |
+| Uvicorn | 0.54.0 | ASGI server |
+| Pydantic | 2.14.4 | Validation and settings |
+| SQLAlchemy | 2.1.9 | Database ORM |
+| Psycopg | 3.3.9 | PostgreSQL driver |
+| NumPy | 2.5.5 | Numerical computing |
+| Pandas | 3.1.1 | Data processing |
+| yfinance | 1.8.0 | Market data |
+| HTTPX | 0.28.1 | Async HTTP client |
+| HTTPX2 | 2.16.2 | Starlette test client (dev only) |
+| pytest | 9.2.0 | Test framework |
+| pytest-asyncio | 1.5.0 | Async test support |
+| Ruff | 0.15.22 | Linting |
+| Black | 26.10.1 | Formatting |
+| mypy | 2.4.1 | Type checking |
 
-### External Data Sources
-```
-yfinance                      0.2.28        - Yahoo Finance data
-HTTPX                         0.24.0        - Async HTTP client
-requests                      2.31.0        - HTTP client
-```
+Ruff remains below 0.16 because Ruff 0.17.6 surfaced 177 lint findings;
+reconcile those rules separately before upgrading it.
 
-### Authentication & Security
-```
-python-jose                   3.3.0         - JWT token handling
-PyJWT                         2.8.0         - JWT encoding/decoding
-passlib                       1.7.4         - Password hashing
-bcrypt                        4.0.0         - Password hashing
-python-multipart              0.0.6         - Form data handling
-```
-
-### Logging & Monitoring
-```
-structlog                     23.1.0        - Structured logging
-python-logging-loki           Latest        - Loki integration
-```
-
-### Caching & Performance
-```
-redis                         4.5.0         - Redis client (optional)
-aioredis                      2.0.0         - Async Redis (optional)
-```
-
-### Email & Notifications
-```
-python-email-validator       2.0.0          - Email validation
-aiosmtplib                   Latest         - Async SMTP
-sendgrid                     6.10.0         - SendGrid integration
-```
-
-### Testing
-```
-pytest                        7.4.0         - Test framework
-pytest-asyncio                0.21.0        - Async test support
-pytest-cov                    4.1.0         - Coverage reporting
-httpx-mock                    0.1.0         - HTTP mocking
-```
-
-### Code Quality
-```
-pylint                        2.17.0        - Code linting
-black                         23.7.0        - Code formatter
-flake8                        6.0.0         - Style guide enforcement
-isort                         5.12.0        - Import sorting
-mypy                          1.4.0         - Type checking
-```
-
-### Development
-```
-python-dotenv                 1.0.0         - .env file support
-```
-
-### Complete Requirements
-
-```txt
-# Core
-fastapi==0.100.0
-uvicorn[standard]==0.23.0
-pydantic==2.1.0
-pydantic-settings==2.1.0
-
-# Database
-supabase==1.0.0
-asyncpg==0.27.0
-sqlalchemy==2.0.0
-
-# Data
-pandas==2.0.0
-numpy==1.24.0
-scipy==1.11.0
-ta-lib==0.4.27
-
-# External Data
-yfinance==0.2.28
-httpx==0.24.0
-requests==2.31.0
-
-# Auth & Security
-python-jose==3.3.0
-pyjwt==2.8.0
-passlib==1.7.4
-bcrypt==4.0.0
-python-multipart==0.0.6
-
-# Logging
-structlog==23.1.0
-
-# Caching (optional)
-redis==4.5.0
-aioredis==2.0.0
-
-# Notifications
-sendgrid==6.10.0
-aiosmtplib==3.0.0
-
-# Testing
-pytest==7.4.0
-pytest-asyncio==0.21.0
-pytest-cov==4.1.0
-
-# Quality
-pylint==2.17.0
-black==23.7.0
-flake8==6.0.0
-isort==5.12.0
-mypy==1.4.0
-
-# Utilities
-python-dotenv==1.0.0
-```
+Upgrade dependency inputs in `backend/pyproject.toml`, regenerate the lock
+with `uv lock --upgrade`, and validate with `uv run verify`.
 
 ---
 
@@ -469,9 +359,9 @@ Axios                         1.4.0         - HTTP client (shared)
 | **Mobile** | React Native | 0.73 | Mobile Framework |
 | | Expo | 50.0 | Development Platform |
 | | NativeWind | Latest | Mobile Styling |
-| **Backend** | FastAPI | 0.100 | API Framework |
-| | Uvicorn | 0.23 | ASGI Server |
-| | Pydantic | 2.1 | Validation |
+| **Backend** | FastAPI | 0.165 | API Framework |
+| | Uvicorn | 0.54 | ASGI Server |
+| | Pydantic | 2.14 | Validation |
 | **Database** | PostgreSQL | 15+ | Database |
 | | Supabase | Latest | Platform |
 | **Deployment** | Vercel | Latest | Web Hosting |
@@ -509,4 +399,4 @@ All major libraries are:
 
 ---
 
-**Version:** A | **Last Updated:** 2026-06-15
+**Version:** A | **Last Updated:** 2026-11-24

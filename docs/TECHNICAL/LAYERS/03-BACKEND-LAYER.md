@@ -2,6 +2,8 @@
 
 **FastAPI Python backend API architecture**
 
+**Runtime support:** Python 3.12–3.15. CI tests each supported minor; Render is pinned to Python 3.15.2.
+
 ---
 
 ## Overview
@@ -24,15 +26,19 @@ The **Backend Layer** provides the core REST API for StrideAlytics, handling bus
 
 | Tool | Purpose | Version |
 |------|---------|---------|
-| **FastAPI** | Web framework | 0.100+ |
-| **Uvicorn** | ASGI server | Latest |
-| **Pydantic** | Data validation | v2 |
-| **Supabase Python** | Database client | Latest |
-| **python-jose** | JWT handling | Latest |
-| **Pandas** | Data processing | Latest |
-| **yfinance** | Market data | Latest |
-| **pytest** | Testing | Latest |
-| **Docker** | Containerization | Latest |
+| **FastAPI** | Web framework | 0.165.0 |
+| **Uvicorn** | ASGI server | 0.54.0 |
+| **Pydantic** | Data validation | 2.14.4 |
+| **SQLAlchemy** | Database ORM | 2.1.9 |
+| **Psycopg** | PostgreSQL driver | 3.3.9 |
+| **NumPy** | Numerical computing | 2.5.5 |
+| **Pandas** | Data processing | 3.1.1 |
+| **yfinance** | Market data | 1.8.0 |
+| **pytest** | Testing | 9.2.0 |
+| **Docker** | Containerization | Python 3.15.2-slim |
+
+Dependency versions are locked in `backend/uv.lock`; update that lock with
+`uv lock --upgrade` and validate with `uv run verify`.
 
 ---
 
@@ -603,4 +609,4 @@ JWT_SECRET=your_secret
 
 ---
 
-**Version:** A | **Last Updated:** 2026-06-15
+**Version:** A | **Last Updated:** 2026-11-24
