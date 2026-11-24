@@ -54,7 +54,7 @@ def csv_safe(value: object) -> object:
     return value
 
 
-def to_csv(columns: list[str], rows: list[dict]) -> str:
+def to_csv(columns: list[str], rows: list[dict[str, object]]) -> str:
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(columns)

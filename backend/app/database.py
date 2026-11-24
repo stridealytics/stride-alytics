@@ -11,6 +11,7 @@ import logging
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from sqlalchemy import MetaData, text
 from sqlalchemy.ext.asyncio import (
@@ -54,7 +55,7 @@ def configure_engine(url: str) -> None:
     """(Re)create the global engine and session factory for ``url``."""
     global engine, async_session_factory, using_sqlite_fallback
     url = normalize_url(url)
-    kwargs: dict = {"echo": settings.DEBUG}
+    kwargs: dict[str, Any] = {"echo": settings.DEBUG}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
         if ":memory:" in url:
@@ -84,10 +85,12 @@ def sanitize_for_sqlite(metadata: MetaData) -> None:
     for table in metadata.tables.values():
         for column in table.columns:
             if column.server_default is not None:
-                text_value = str(column.server_default.arg)
+                text_value = str(getattr(column.server_default, "arg", column.server_default))
                 if any(t in text_value for t in ("auth.uid()", "gen_random_uuid()", "now()")):
                     column.server_default = None
-            if column.server_onupdate is not None and "now()" in str(column.server_onupdate.arg):
+            if column.server_onupdate is not None and "now()" in str(
+                getattr(column.server_onupdate, "arg", column.server_onupdate)
+            ):
                 column.server_onupdate = None
             if column.onupdate is not None:
                 arg = getattr(column.onupdate, "arg", column.onupdate)

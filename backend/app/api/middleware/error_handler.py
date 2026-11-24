@@ -19,7 +19,10 @@ log = get_logger(__name__)
 def _json_safe_errors(errors: Sequence[Any]) -> list[Any]:
     """Pydantic v2 puts the raised exception object in ``ctx`` for custom validators,
     which is not JSON serializable (it caused a 500 instead of a 422)."""
-    return jsonable_encoder(errors, custom_encoder={Exception: str})
+    encoded: object = jsonable_encoder(errors, custom_encoder={Exception: str})
+    if not isinstance(encoded, list):
+        raise TypeError("Encoded validation errors must be a list")
+    return encoded
 
 
 def install_exception_handlers(app: FastAPI) -> None:

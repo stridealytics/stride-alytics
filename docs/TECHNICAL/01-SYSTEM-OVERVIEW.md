@@ -47,7 +47,8 @@ StrideAlytics is a **production-ready, multi-platform analytics system** designe
 - Biometric authentication
 
 ### 2.3 Backend API
-**Tech Stack:** FastAPI + Uvicorn + Python 3.12  
+**Tech Stack:** FastAPI + Uvicorn + Python 3.12–3.15
+
 **Deployment:** Render  
 **Purpose:** Core business logic, data processing, external integrations
 

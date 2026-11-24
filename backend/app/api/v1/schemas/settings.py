@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -33,7 +33,7 @@ class SettingsUpdate(BaseModel):
     notify_market_regime: bool | None = None
     default_symbol: str | None = Field(default=None, min_length=1, max_length=16)
     theme: Literal["light", "dark", "system"] | None = None
-    screener_preset: dict | None = None
+    screener_preset: dict[str, Any] | None = None
     account_size: float | None = Field(default=None, ge=0, le=1e10)
     base_risk_pct: float | None = Field(default=None, gt=0, le=10)
     growth_risk_pct: float | None = Field(default=None, gt=0, le=10)

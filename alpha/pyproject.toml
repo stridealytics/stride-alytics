@@ -3,10 +3,10 @@ name = "stride-alytics-alpha"
 version = "0.1.0"
 description = "StrideAlytics Alpha — Stock and Options Screening Pipeline"
 
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.16"
 
 dependencies = [
-    "pandas>=2.2.3,<3",
+    "pandas>=2.2.3,<4",
     "python-dotenv>=1.0.0",
     "supabase>=2.0.0",
     "gspread>=6.1.0",
@@ -20,7 +20,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3.3",
-    "ruff>=0.9.0",
+    "ruff>=0.9.0,<0.16",
     "black>=25.1.0",
     "mypy>=1.13.0",
 ]
@@ -48,18 +48,18 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 
 [tool.black]
 line-length = 100
-target-version = ["py312"]
+target-version = ["py311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 files = ["app"]
 ignore_missing_imports = false
 strict = true

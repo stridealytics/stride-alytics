@@ -12,7 +12,7 @@ export function ExposureChart({ sectors, limitPct }: { sectors: SectorExposure[]
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
           <XAxis type="number" unit="%" tick={{ fontSize: 11 }} domain={[0, (max: number) => Math.max(max, limitPct)]} />
           <YAxis type="category" dataKey="sector" tick={{ fontSize: 11 }} width={110} />
-          <Tooltip formatter={(v: number) => `${v}% of equity`} />
+          <Tooltip formatter={(value) => (value === undefined ? "" : `${value}% of equity`)} />
           <Bar dataKey="pct" name="Share of equity" radius={[0, 3, 3, 0]}>
             {data.map((d) => (
               <Cell key={d.sector} fill={d.pct > limitPct ? "#dc2626" : "#4f46e5"} />

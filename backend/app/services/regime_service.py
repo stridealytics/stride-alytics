@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import TypedDict
 
 from app.domain import regime_score as rs
 from app.utils.constants import REGIME_CACHE_TTL_SECONDS
@@ -17,12 +18,22 @@ from app.utils.logger import get_logger
 log = get_logger(__name__)
 
 _lock = threading.Lock()
-_cache: dict[str, object] = {"at": 0.0, "spy": None, "vix": None}
+
+
+class _RegimeCache(TypedDict):
+    at: float
+    spy: list[float] | None
+    vix: list[float] | None
+
+
+_cache: _RegimeCache = {"at": 0.0, "spy": None, "vix": None}
 
 
 def clear_cache() -> None:
     with _lock:
-        _cache.update(at=0.0, spy=None, vix=None)
+        _cache["at"] = 0.0
+        _cache["spy"] = None
+        _cache["vix"] = None
 
 
 def get_inputs() -> tuple[list[float] | None, list[float] | None]:
@@ -30,14 +41,16 @@ def get_inputs() -> tuple[list[float] | None, list[float] | None]:
     with _lock:
         fresh = time.monotonic() - float(_cache["at"]) < REGIME_CACHE_TTL_SECONDS
         if fresh and (_cache["spy"] is not None or _cache["vix"] is not None):
-            return _cache["spy"], _cache["vix"]  # type: ignore[return-value]
+            return _cache["spy"], _cache["vix"]
 
     spy, vix = rs.fetch_inputs()
     if spy is None and vix is None:
         log.warning("regime.inputs_unavailable")
         return None, None
     with _lock:
-        _cache.update(at=time.monotonic(), spy=spy, vix=vix)
+        _cache["at"] = time.monotonic()
+        _cache["spy"] = spy
+        _cache["vix"] = vix
     return spy, vix
 
 

@@ -21,7 +21,8 @@ SymbolDataProvider = Callable[..., SymbolData]
 def _first_future_date(calendar: object, today: date) -> date | None:
     """Pick the next earnings date from yfinance's ``calendar`` (dict-like)."""
     try:
-        raw = calendar.get("Earnings Date") if hasattr(calendar, "get") else None  # type: ignore[union-attr]
+        get = getattr(calendar, "get", None)
+        raw = get("Earnings Date") if callable(get) else None
     except Exception:  # noqa: BLE001
         return None
     if raw is None:
