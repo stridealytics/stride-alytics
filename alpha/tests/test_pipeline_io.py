@@ -180,9 +180,6 @@ def test_supabase_errors_are_raised_not_swallowed(monkeypatch: pytest.MonkeyPatc
 
 
 def _no_real_data(monkeypatch: pytest.MonkeyPatch) -> None:
-    # config.py loads alpha/.env at import; a developer's ALPHA_EXPECT_PROJECT would otherwise make
-    # the pre-flight guard reject these tests' (absent) Supabase URL.
-    monkeypatch.delenv("ALPHA_EXPECT_PROJECT", raising=False)
     monkeypatch.setattr(alpha_main, "load_from_supabase", lambda: pd.DataFrame())
     monkeypatch.setattr(alpha_main, "load_local_csv", lambda: pd.DataFrame())
 
