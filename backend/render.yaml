@@ -6,8 +6,8 @@ services:
     env: python
     # Keep Render aligned with backend/.python-version.
     pythonVersion: "3.15.2"
-    buildCommand: "pip install uv && UV_PYTHON_DOWNLOADS=automatic uv python install 3.15.2 && UV_PYTHON_DOWNLOADS=automatic UV_PYTHON_PREFERENCE=managed uv sync --frozen --no-dev"
-    startCommand: "UV_PYTHON_PREFERENCE=managed uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install uv && unset UV_NO_MANAGED_PYTHON && UV_PYTHON_DOWNLOADS=automatic uv python install 3.15.2 && uv sync --frozen --no-dev"
+    startCommand: "unset UV_NO_MANAGED_PYTHON && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     numInstances: 1
     plan: free # sleeps when idle; use `starter` for always-on
     healthCheckPath: /health

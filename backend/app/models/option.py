@@ -27,9 +27,9 @@ class Option(Base):
     implied_vol: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 4), nullable=True)
     delta: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 4), nullable=True)
     gamma: Mapped[Decimal | None] = mapped_column(DECIMAL(7, 6), nullable=True)
-    theta: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 4), nullable=True)
-    vega: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 4), nullable=True)
-    rho: Mapped[Decimal | None] = mapped_column(DECIMAL(5, 4), nullable=True)
+    theta: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 4), nullable=True)
+    vega: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 4), nullable=True)
+    rho: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 4), nullable=True)
     open_interest: Mapped[int | None] = mapped_column(nullable=True)
     volume: Mapped[int | None] = mapped_column(nullable=True)
     updated_at: Mapped[datetime] = mapped_column(

@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS health_check (
     service VARCHAR(64) NOT NULL DEFAULT 'backend',
     status VARCHAR(16) NOT NULL DEFAULT 'ok'
 );
+-- RLS with no policy: denies the public anon key (see migration 015); the backend/service role bypass it.
+ALTER TABLE health_check ENABLE ROW LEVEL SECURITY;
 
 -- ===== INDEXES =====
 CREATE INDEX IF NOT EXISTS idx_portfolios_user_id ON portfolios(user_id);
