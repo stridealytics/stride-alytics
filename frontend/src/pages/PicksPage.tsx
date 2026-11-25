@@ -11,7 +11,11 @@ function PickCard({ pick }: { pick: WeeklyPick }) {
   return (
     <Card
       title={`${pick.symbol} ${pick.side.toUpperCase()}${pick.strike ? ` ${pick.strike}` : ""}`}
-      subtitle={pick.expiry ? `Expires ${pick.expiry}` : undefined}
+      subtitle={
+        [pick.company_name, pick.expiry ? `Expires ${pick.expiry}` : null]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      }
       actions={<Badge tone="indigo">{Math.round(pick.confidence * 100)}% confidence</Badge>}
     >
       <p className="text-sm text-gray-700">{pick.rationale}</p>

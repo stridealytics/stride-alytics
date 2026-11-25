@@ -70,6 +70,35 @@ def test_picks_are_alphas_list_not_a_second_rule_set():
     assert all(p["week_of"] == "2026-11-23" for p in picks)
 
 
+def test_picks_carry_the_company_name_when_known():
+    import generate_picks as gp
+
+    rows = [
+        {"ticker": "aapl", "price": 190.5, "option_score": 8},
+        {"ticker": "AVGO", "price": 900, "option_score": 7},
+    ]
+    picks = gp.build_picks(rows, "2026-11-23", names={"AAPL": "Apple Inc."})
+    assert {p["symbol"]: p["company_name"] for p in picks} == {"AAPL": "Apple Inc.", "AVGO": None}
+
+
+def test_a_failed_name_lookup_never_blocks_publishing(monkeypatch):
+    import types
+    import generate_picks as gp
+
+    class Ticker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        @property
+        def info(self):
+            if self.symbol == "BAD":
+                raise RuntimeError("rate limited")
+            return {"longName": "Apple Inc.", "shortName": "Apple"}
+
+    monkeypatch.setitem(sys.modules, "yfinance", types.SimpleNamespace(Ticker=Ticker))
+    assert gp.lookup_company_names(["AAPL", "BAD"]) == {"AAPL": "Apple Inc."}
+
+
 def test_side_follows_the_option_type_in_the_strategy_tag():
     import generate_picks as gp
 

@@ -73,6 +73,8 @@ export interface AckRecord {
 export interface WeeklyPick {
   id: string;
   symbol: string;
+  /** Company name shown beside the ticker; null for older picks or a failed lookup. */
+  company_name?: string | null;
   side: "call" | "put" | "stock";
   strike: number | null;
   expiry: string | null;

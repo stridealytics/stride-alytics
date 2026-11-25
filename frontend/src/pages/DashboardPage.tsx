@@ -115,10 +115,15 @@ export function DashboardPage() {
                 <ul className="space-y-2 text-sm">
                   {d.picks.top.map((p) => (
                     <li key={p.id} className="flex items-center justify-between">
-                      <span>
+                      <span className="min-w-0">
                         <strong>{p.symbol}</strong> {p.side.toUpperCase()}
                         {p.strike ? ` ${p.strike}` : ""}
                         {p.expiry ? ` · ${p.expiry}` : ""}
+                        {p.company_name && (
+                          <span className="block truncate text-xs text-gray-600">
+                            {p.company_name}
+                          </span>
+                        )}
                       </span>
                       <Badge tone="indigo">{Math.round(p.confidence * 100)}%</Badge>
                     </li>

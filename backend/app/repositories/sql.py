@@ -861,6 +861,7 @@ class Repo:
         return {
             "id": str(row.id),
             "symbol": row.symbol,
+            "company_name": row.company_name,
             "side": row.side,
             "strike": _num(row.strike),
             "expiry": row.expiry.isoformat() if row.expiry else None,

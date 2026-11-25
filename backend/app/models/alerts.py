@@ -38,6 +38,7 @@ class WeeklyPick(Base):
         primary_key=True, default=new_uuid, server_default=text("gen_random_uuid()")
     )
     symbol: Mapped[str] = mapped_column(String, nullable=False)
+    company_name: Mapped[str | None] = mapped_column(String, nullable=True)
     side: Mapped[str] = mapped_column(String(8), nullable=False)
     strike: Mapped[float | None] = mapped_column(DECIMAL(10, 2), nullable=True)
     expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
