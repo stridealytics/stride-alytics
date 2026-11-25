@@ -37,8 +37,9 @@ database/
 ### Supabase (hosted)
 
 The CI workflow [`.github/workflows/database-migrate.yml`](../.github/workflows/database-migrate.yml)
-runs `npx supabase db push` on push to `main`. You can also trigger it
-manually via the Actions tab → "Database Migrate" → Run workflow.
+applies pending files through the Supabase Management API on push to `main`, using
+`public.schema_migrations` to skip files already applied (the same table the local apply scripts use).
+You can also trigger it manually via the Actions tab → "Database Migrate" → Run workflow.
 
 ### Local (docker-compose)
 
