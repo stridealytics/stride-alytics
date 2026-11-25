@@ -10,8 +10,12 @@ services:
     # Render keeps that dir between build and start, but not ~/.local, so without it backend/.venv
     # points at a missing interpreter and every cold start re-downloads Python and reinstalls deps.
     # VIRTUAL_ENV is Render's own venv; unsetting it silences uv's "does not match" warning.
-    buildCommand: "pip install uv && unset UV_NO_MANAGED_PYTHON VIRTUAL_ENV && UV_PYTHON_DOWNLOADS=automatic uv python install 3.15.2 && uv sync --frozen --no-dev"
-    startCommand: "unset UV_NO_MANAGED_PYTHON VIRTUAL_ENV && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # --no-bin skips the python3.15 shortcut in ~/.local/bin (not on PATH, and not needed: uv finds
+    # the interpreter in UV_PYTHON_INSTALL_DIR), which silences "Failed to install executable".
+    buildCommand: "pip install uv && unset UV_NO_MANAGED_PYTHON VIRTUAL_ENV && UV_PYTHON_DOWNLOADS=automatic uv python install 3.15.2 --no-bin && uv sync --frozen --no-dev"
+    # --frozen --no-dev: the build synced production dependencies only; a bare `uv run` would also
+    # install the dev group (ruff, mypy, pytest...) and re-resolve on every cold start.
+    startCommand: "unset UV_NO_MANAGED_PYTHON VIRTUAL_ENV && uv run --frozen --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     numInstances: 1
     plan: free # sleeps when idle; use `starter` for always-on
     healthCheckPath: /health
