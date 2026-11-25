@@ -66,6 +66,16 @@ Use the shared scripts; do not run ad‑hoc `psql`:
 ./database/scripts/apply_migrations.ps1       # Windows
 ```
 
+The scripts record each applied file in `public.schema_migrations` and skip it next time. On a
+database that already has the migrations (applied through the Supabase MCP or SQL editor), run once
+with `BASELINE=1` (bash) or `-Baseline` (PowerShell) to record them without re-running. The hosted
+project was baselined this way through 015. Supabase's own `supabase_migrations` history for it holds
+grouped entries, not one per file; `schema_migrations` is the record that matches these files.
+
+After a migration that adds views, functions or tables, check the Supabase security advisors:
+views need `security_invoker = true`, tables in `public` need RLS, functions need a pinned
+`search_path` (see 015).
+
 ## 7. CI
 
 CI must run migrations against a fresh database before merge.
