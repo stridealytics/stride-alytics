@@ -104,10 +104,10 @@ CREATE TABLE options (
   last_price DECIMAL(10, 4),
   implied_vol DECIMAL(5, 4),
   delta DECIMAL(5, 4),
-  gamma DECIMAL(5, 4),
-  theta DECIMAL(5, 4),
-  vega DECIMAL(5, 4),
-  rho DECIMAL(5, 4),
+  gamma DECIMAL(7, 6),
+  theta DECIMAL(10, 4),
+  vega DECIMAL(10, 4),
+  rho DECIMAL(10, 4),
   open_interest INT,
   volume INT,
   updated_at TIMESTAMP DEFAULT now(),
@@ -546,3 +546,20 @@ The Weekly Picks page reads the existing `weekly_picks` table (written by the sc
 ## 20. Entry EV on trades (migration 012)
 
 `012_trade_entry_ev.sql` (down file included) adds `trades.entry_ev` (NUMERIC(12,2), nullable): the expected value in dollars computed when a short option was opened (`app/domain/ev.py:entry_ev`: PoP from the live delta, gain = the credit kept, loss = the risk amount). It is NULL for stock, long options, back-dated entries and anything missing an input. `/analytics/ev-calibration` averages it per layer.
+
+
+## 21. Alpha RLS and wider Greeks (migration 013)
+
+`013_alpha_rls_and_numeric_widen.sql` enables row-level security, with no policies, on alpha's tables (`daily_metrics`, `option_scores`, `bands`, `weekly_watchlist`, `ticker_universe`, `alpha_trades`, `alpha_audit_log`, `alpha_state`). They live in `public`, so without RLS the public anon key could read them; alpha, the scheduler and Streamlit use the service-role key, which bypasses RLS. It skips any table that does not exist. It also widens `options.theta`, `vega` and `rho` from `NUMERIC(5,4)` to `NUMERIC(10,4)`, because a high strike or long expiry can exceed 9.9999 and fail the upsert.
+
+## 22. Alpha delete guard (migration 014)
+
+`014_alpha_delete_guard.sql` adds triggers so a mistake cannot wipe alpha's data: `ticker_universe` and `alpha_state` refuse DELETE and TRUNCATE; the four daily tables (`daily_metrics`, `option_scores`, `bands`, `weekly_watchlist`) refuse TRUNCATE and any single DELETE that removes 25 or more rows and more than half the table. To do it on purpose, in the SQL editor: `BEGIN; SET LOCAL alpha.allow_bulk_delete = 'on'; DELETE ...; COMMIT;`. It guards against mistakes, not against someone who can drop the trigger. Skips tables that do not exist.
+
+## 23. Security hardening (migration 015)
+
+`015_security_hardening.sql` fixes what the Supabase advisors flagged after 001–014: `portfolio_summary` is `security_invoker` (it used to run as its owner and bypass RLS, exposing every user's totals to the anon key); `health_check` has RLS enabled (no policy, so anon is denied); and the six trigger/helper functions have `search_path = public, pg_temp`. It assumes the backend's `DATABASE_URL` role owns the tables or has BYPASSRLS (Supabase's `postgres` role does) and needs PostgreSQL 15+.
+
+## 24. Migration tracking
+
+Applied files are recorded in `public.schema_migrations` (`filename`, `applied_at`; RLS on, no policy). `database/scripts/apply_migrations.*` and `.github/workflows/database-migrate.yml` apply only unrecorded files. The hosted project was migrated through the Supabase MCP, so Supabase's own `supabase_migrations` history holds grouped entries; `schema_migrations` is the record that matches the repo files.

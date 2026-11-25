@@ -423,34 +423,15 @@ jobs:
 
 ## 6. Database Migrations
 
-```yaml
-# .github/workflows/db-migrations.yml
-name: Database Migrations
+The workflow is `.github/workflows/database-migrate.yml` ("Database Migrate").
 
-on:
-  push:
-    branches: [main]
-    paths: ['database/migrations/**']
+- **Triggers:** push to `main` touching `database/migrations/**`, `functions/**`, `rls-policies/**` or `views/**`; or manual dispatch with `environment` (staging/production), optional `target` (one file) and `baseline`.
+- **Lint:** runs `sqlfluff` over the SQL files (warnings only).
+- **Apply:** calls the Supabase Management API SQL endpoint (`/v1/projects/<ref>/database/query`) with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF_PROD` / `_STAGING`. It creates `public.schema_migrations`, skips files already recorded there, and sends each pending file together with its record in one request. Any HTTP or SQL error fails the job, and the message goes to stderr so it shows in the log. Without the token or ref it warns and skips.
+- **Baseline:** ticking `baseline` records the files as applied without running them, for an environment that was migrated by hand.
+- **Not used:** `supabase db push` / `supabase migration up`, which read Supabase's own history instead of `schema_migrations`.
 
-jobs:
-  migrate:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Supabase CLI
-        run: npm install -g supabase
-      
-      - name: List migrations
-        run: supabase migration list --db-url ${{ secrets.SUPABASE_DB_URL }}
-      
-      - name: Apply migrations
-        run: supabase migration up --db-url ${{ secrets.SUPABASE_DB_URL }}
-      
-      - name: Verify schema
-        run: supabase db pull --db-url ${{ secrets.SUPABASE_DB_URL }}
-```
+The local scripts `database/scripts/apply_migrations.sh` and `.ps1` use the same `schema_migrations` table.
 
 ---
 

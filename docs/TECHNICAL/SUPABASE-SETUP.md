@@ -87,7 +87,13 @@ node scripts/load-secrets.mjs local
    - `010_scenarios.sql`
    - `011_rule_thresholds.sql`
    - `012_trade_entry_ev.sql`
-3. Run each one in sequence
+   - `013_alpha_rls_and_numeric_widen.sql` (apply `alpha/app/supabase_schema.sql` first if you use alpha)
+   - `014_alpha_delete_guard.sql` (same: needs alpha's tables; it skips any that are missing)
+   - `015_security_hardening.sql`
+3. Run each one in sequence. Skip `*_down.sql` files.
+
+If you apply them by hand, record each one afterwards so the scripts and CI know it is done (see Option C):
+`INSERT INTO public.schema_migrations (filename) VALUES ('<file>.sql');` (create the table first, as in Option C).
 
 ### Option B: Via psql CLI
 
@@ -106,13 +112,15 @@ psql "$DATABASE_URL" -f database/migrations/011_rule_thresholds.sql
 psql "$DATABASE_URL" -f database/migrations/012_trade_entry_ev.sql
 # 013 enables RLS on alpha tables and widens options theta/vega/rho (apply alpha/app/supabase_schema.sql first)
 psql "$DATABASE_URL" -f database/migrations/013_alpha_rls_and_numeric_widen.sql
-psql "$DATABASE_URL" -f database/migrations/009_alert_acks.sql
-psql "$DATABASE_URL" -f database/migrations/010_scenarios.sql
-psql "$DATABASE_URL" -f database/migrations/011_rule_thresholds.sql
-psql "$DATABASE_URL" -f database/migrations/012_trade_entry_ev.sql
+# 014 blocks TRUNCATE / mass DELETE on alpha's tables (override: SET LOCAL alpha.allow_bulk_delete = 'on')
+psql "$DATABASE_URL" -f database/migrations/014_alpha_delete_guard.sql
+# 015 makes portfolio_summary security_invoker, enables RLS on health_check, pins function search_path
+psql "$DATABASE_URL" -f database/migrations/015_security_hardening.sql
 ```
 
-### Option C: Via migration scripts
+Running files by hand does not record them. Prefer Option C.
+
+### Option C: Via migration scripts (recommended)
 
 ```bash
 # Windows PowerShell
@@ -121,6 +129,19 @@ psql "$DATABASE_URL" -f database/migrations/012_trade_entry_ev.sql
 # Bash
 ./database/scripts/apply_migrations.sh
 ```
+
+The scripts create `public.schema_migrations`, apply only the files not yet recorded, and record each one
+in the same psql session that applies it. Re-running is safe.
+
+If the database was already migrated by hand (SQL editor or MCP), record the files without running them, once:
+
+```bash
+BASELINE=1 ./database/scripts/apply_migrations.sh          # PowerShell: .\database\scripts\apply_migrations.ps1 -Baseline
+```
+
+The hosted project (`mhjneduprfabfxctfvdr`) was migrated through the Supabase MCP and baselined through 015.
+After any migration, run the Supabase security advisors (Dashboard → Advisors): views need
+`security_invoker`, `public` tables need RLS, functions need a pinned `search_path`.
 
 ---
 
