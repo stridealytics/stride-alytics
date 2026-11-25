@@ -10,6 +10,11 @@
 -- Down: 015_security_hardening_down.sql
 -- Risk:  low; no data is touched.
 
+-- Assumes the backend's DATABASE_URL role owns the tables or has BYPASSRLS (Supabase's `postgres`
+-- role does). A role subject to RLS would see only its own rows through portfolio_summary.
+-- Needs PostgreSQL 15+ for security_invoker (Supabase and docker-compose run 15+).
+BEGIN;
+
 ALTER VIEW portfolio_summary SET (security_invoker = true);
 
 ALTER TABLE health_check ENABLE ROW LEVEL SECURITY;
@@ -20,3 +25,5 @@ ALTER FUNCTION prevent_log_mutation()                SET search_path = public, p
 ALTER FUNCTION calculate_portfolio_stats(uuid)       SET search_path = public, pg_temp;
 ALTER FUNCTION alpha_block_destructive()             SET search_path = public, pg_temp;
 ALTER FUNCTION alpha_limit_bulk_delete()             SET search_path = public, pg_temp;
+
+COMMIT;

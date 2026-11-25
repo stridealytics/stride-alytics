@@ -55,17 +55,21 @@ $files = Get-ChildItem -Path $migDir -Filter "*.sql" |
 
 foreach ($f in $files) {
     $seen = Invoke-Psql @("-tA", "-c", "SELECT 1 FROM public.schema_migrations WHERE filename = '$($f.Name)'")
-    if ($seen) {
+    if ((($seen | Out-String).Trim()) -eq "1") {
         Write-Host "  == $($f.Name) (already applied)" -ForegroundColor DarkGray
         continue
     }
+    $record = "INSERT INTO public.schema_migrations (filename) VALUES ('$($f.Name)');"
     if ($Baseline) {
         Write-Host "  .. $($f.Name) (recorded, not run)" -ForegroundColor Yellow
+        Invoke-Psql @("-q", "-c", $record) | Out-Null
     } else {
         Write-Host "  -> $($f.Name)" -ForegroundColor Yellow
-        Invoke-Psql @("-q", "-f", $f.FullName) | Out-Null
+        # One psql session: the file and its record, so an interruption cannot apply without recording.
+        $sql = (Get-Content -Raw -Path $f.FullName) + "`n" + $record + "`n"
+        $sql | & psql $DatabaseUrl -v ON_ERROR_STOP=1 -q -f - | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "psql failed on $($f.Name)" }
     }
-    Invoke-Psql @("-q", "-c", "INSERT INTO public.schema_migrations (filename) VALUES ('$($f.Name)')") | Out-Null
 }
 
 Write-Host ""

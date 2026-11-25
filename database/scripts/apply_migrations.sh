@@ -30,17 +30,19 @@ echo
 for f in $(ls "$ROOT/database/migrations/"*.sql | grep -v '_down.sql' | sort); do
     name="$(basename "$f")"
     done_already="$(psql "$DSN" -v ON_ERROR_STOP=1 -tA -c "SELECT 1 FROM public.schema_migrations WHERE filename = '$name'")"
-    if [[ -n "$done_already" ]]; then
+    if [[ "$(echo "$done_already" | tr -d '[:space:]')" == "1" ]]; then
         echo "  == $name (already applied)"
         continue
     fi
+    record="INSERT INTO public.schema_migrations (filename) VALUES ('$name');"
     if [[ "${BASELINE:-}" == "1" ]]; then
         echo "  .. $name (recorded, not run)"
+        psql "$DSN" -v ON_ERROR_STOP=1 -q -c "$record"
     else
         echo "  -> $name"
-        psql "$DSN" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null
+        # One psql session: the file and its record, so an interruption cannot apply without recording.
+        { cat "$f"; printf '\n%s\n' "$record"; } | psql "$DSN" -v ON_ERROR_STOP=1 -q -f - >/dev/null
     fi
-    psql "$DSN" -v ON_ERROR_STOP=1 -q -c "INSERT INTO public.schema_migrations (filename) VALUES ('$name')"
 done
 
 echo
