@@ -288,6 +288,7 @@ def _seed_picks() -> None:
                 s.add(
                     m.WeeklyPick(
                         symbol=sym,
+                        company_name="Microsoft Corporation" if sym == "MSFT" else None,
                         side="call",
                         strike=200,
                         expiry=date(2026, 7, 17),
@@ -315,6 +316,8 @@ def test_latest_week_by_confidence_and_by_week(client: TestClient) -> None:
     assert body["week_of"] == "2026-06-01"
     assert [p["symbol"] for p in body["data"]] == ["MSFT", "AAPL", "TSLA"]  # best confidence first
     assert body["data"][0]["confidence"] == 0.88 and body["data"][0]["entry_price"] == 2.5
+    assert body["data"][0]["company_name"] == "Microsoft Corporation"
+    assert body["data"][1]["company_name"] is None  # picks without a name stay valid
     older = client.get("/api/v1/picks?week_of=2026-05-25", headers=ALICE).json()
     assert [p["symbol"] for p in older["data"]] == ["OLD"]
     assert len(client.get("/api/v1/picks?limit=2", headers=ALICE).json()["data"]) == 2

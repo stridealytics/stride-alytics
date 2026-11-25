@@ -33,6 +33,17 @@ describe("Weekly Picks page", () => {
     vi.mocked(picksApi.list).mockResolvedValue({ success: true, data: [pick()], week_of: "2026-06-01" } as never);
   });
 
+  it("shows the company name beside the expiry, and omits it when unknown", async () => {
+    vi.mocked(picksApi.list).mockResolvedValue({
+      success: true,
+      data: [pick({ company_name: "NVIDIA Corporation" }), pick({ id: "p2", symbol: "AMD" })],
+      week_of: "2026-06-01",
+    } as never);
+    renderWithRouter(<PicksPage />);
+    expect(await screen.findByText("NVIDIA Corporation · Expires 2026-07-17")).toBeInTheDocument();
+    expect(screen.getByText("Expires 2026-07-17")).toBeInTheDocument();
+  });
+
   it("lists picks with confidence", async () => {
     renderWithRouter(<PicksPage />);
     expect(await screen.findByText("NVDA CALL 900")).toBeInTheDocument();

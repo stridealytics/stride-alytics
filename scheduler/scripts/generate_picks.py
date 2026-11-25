@@ -4,8 +4,9 @@ Publish the weekly picks. Scheduled: Sundays @ 6:00 PM EST (23:00 UTC)
 Alpha (``alpha/app/main.py``) is the single place that decides what a pick is: its option score,
 14-day earnings buffer and band rules produce the ``weekly_watchlist`` table every weekday. This
 script only copies the latest day of that list into ``weekly_picks`` (the table the app reads), so
-the app can never show a pick that alpha's rules would reject. It computes nothing itself and makes
-no market-data calls.
+the app can never show a pick that alpha's rules would reject. It computes nothing itself. The only
+market-data call is a best-effort company-name lookup (yfinance) for display; a failed lookup leaves
+the name empty and never blocks publishing.
 
 Alpha does not choose strikes, expiries or targets, so those columns are left empty rather than
 invented. The run fails (non-zero exit, so the workflow alerts) when alpha's list is missing, empty
@@ -68,11 +69,35 @@ def build_rationale(row: dict) -> str:
     return "; ".join(parts)
 
 
-def build_picks(rows: list[dict], week_of: str, limit: int = PICKS_LIMIT) -> list[dict]:
+def lookup_company_names(symbols: list[str]) -> dict[str, str]:
+    """Best-effort ``{symbol: company name}`` from yfinance; symbols that fail are left out."""
+    import yfinance as yf
+
+    names: dict[str, str] = {}
+    for symbol in symbols:
+        try:
+            info = yf.Ticker(symbol).info or {}
+        except Exception as exc:  # Yahoo hiccup or unknown symbol: publish without a name
+            print(f"[INFO] no company name for {symbol}: {exc}")
+            continue
+        name = info.get("longName") or info.get("shortName")
+        if name:
+            names[symbol] = str(name).strip()
+    return names
+
+
+def build_picks(
+    rows: list[dict],
+    week_of: str,
+    limit: int = PICKS_LIMIT,
+    names: dict[str, str] | None = None,
+) -> list[dict]:
     """Top ``limit`` ``weekly_picks`` rows from alpha's watchlist rows (best option score first).
 
-    Rows without a ticker or a price are skipped (``entry_price`` is required).
+    Rows without a ticker or a price are skipped (``entry_price`` is required). ``names`` maps a
+    symbol to its company name; a symbol without one gets ``company_name`` None.
     """
+    names = names or {}
     usable = [r for r in rows if r.get("ticker") and _number(r.get("price")) is not None]
     usable.sort(
         key=lambda r: (_number(r.get("option_score")) or 0, _number(r.get("iv_rank_1y")) or 0),
@@ -81,9 +106,11 @@ def build_picks(rows: list[dict], week_of: str, limit: int = PICKS_LIMIT) -> lis
     picks = []
     for row in usable[:limit]:
         score = _number(row.get("option_score")) or 0
+        symbol = str(row["ticker"]).upper()
         picks.append(
             {
-                "symbol": str(row["ticker"]).upper(),
+                "symbol": symbol,
+                "company_name": names.get(symbol),
                 "side": side_for(row.get("strategy")),
                 "strike": None,
                 "expiry": None,
@@ -128,16 +155,36 @@ def fetch_latest_watchlist(client: httpx.Client) -> tuple[str, list[dict]]:
     return day, rows.json()
 
 
-def existing_symbols(client: httpx.Client, week_of: str) -> set[str]:
-    """Symbols already published for the week. ``strike`` and ``expiry`` are NULL, so the table's
-    unique key cannot stop a re-run from adding duplicates; this check does."""
+def existing_picks(client: httpx.Client, week_of: str) -> dict[str, str | None]:
+    """``{symbol: company_name}`` already published for the week. ``strike`` and ``expiry`` are
+    NULL, so the table's unique key cannot stop a re-run from adding duplicates; this check does."""
     resp = client.get(
         f"{SUPABASE_URL}/rest/v1/weekly_picks",
         headers=_headers(),
-        params={"select": "symbol", "week_of": f"eq.{week_of}"},
+        params={"select": "symbol,company_name", "week_of": f"eq.{week_of}"},
     )
     resp.raise_for_status()
-    return {str(r["symbol"]).upper() for r in resp.json()}
+    return {str(r["symbol"]).upper(): r.get("company_name") for r in resp.json()}
+
+
+def backfill_names(
+    client: httpx.Client, week_of: str, have: dict[str, str | None], names: dict[str, str]
+) -> int:
+    """Fill ``company_name`` on this week's rows published without one. Returns rows updated."""
+    updated = 0
+    for symbol, current in have.items():
+        name = names.get(symbol)
+        if current or not name:
+            continue
+        resp = client.patch(
+            f"{SUPABASE_URL}/rest/v1/weekly_picks",
+            headers={**_headers(), "Content-Type": "application/json"},
+            params={"symbol": f"eq.{symbol}", "week_of": f"eq.{week_of}"},
+            json={"company_name": name},
+        )
+        resp.raise_for_status()
+        updated += 1
+    return updated
 
 
 def main() -> None:
@@ -152,12 +199,18 @@ def main() -> None:
         day, rows = fetch_latest_watchlist(client)
         check_fresh(day, today)
         picks = build_picks(rows, week_of)
+        names = lookup_company_names([p["symbol"] for p in picks])
+        for pick in picks:
+            pick["company_name"] = names.get(pick["symbol"])
         print(f"📊 alpha list of {day}: {len(rows)} rows → top {len(picks)} for week of {week_of}")
         if not picks:
             print("✗ alpha's list has no usable rows (needs a ticker and a price)")
             sys.exit(1)
 
-        have = existing_symbols(client, week_of)
+        have = existing_picks(client, week_of)
+        filled = backfill_names(client, week_of, have, names)
+        if filled:
+            print(f"  ✎ added a company name to {filled} existing picks")
         new = [p for p in picks if p["symbol"] not in have]
         for i, pick in enumerate(picks, 1):
             mark = "already published" if pick["symbol"] in have else "new"
